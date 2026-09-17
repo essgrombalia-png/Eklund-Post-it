@@ -1,0 +1,6 @@
+{
+  "name": "Post-it",
+  "description": "Modern, snabb och touch-optimerad digital Post-it-arbetsyta för iPad Pro och skrivbord.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
