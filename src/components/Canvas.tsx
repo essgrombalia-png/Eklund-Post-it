@@ -10,6 +10,8 @@ interface CanvasProps {
   theme: DeskTheme;
   searchQuery: string;
   activeColorFilter: PostItColor | 'all' | 'pinned';
+  isSmoothTransition?: boolean;
+  focusedNoteId?: string | null;
   onPanChange: (offset: { x: number; y: number }) => void;
   onZoomChange: (newZoom: number) => void;
   onUpdateNote: (note: PostItNote, recordHistory?: boolean) => void;
@@ -18,6 +20,8 @@ interface CanvasProps {
   onBringToFront: (id: string) => void;
   onDoubleTapCreate: (x: number, y: number) => void;
   onAddNote: (color?: PostItColor) => void;
+  onFocusNote?: (note: PostItNote) => void;
+  onClearFocus?: () => void;
 }
 
 export const Canvas: React.FC<CanvasProps> = ({
@@ -27,6 +31,8 @@ export const Canvas: React.FC<CanvasProps> = ({
   theme,
   searchQuery,
   activeColorFilter,
+  isSmoothTransition = false,
+  focusedNoteId = null,
   onPanChange,
   onZoomChange,
   onUpdateNote,
@@ -35,6 +41,8 @@ export const Canvas: React.FC<CanvasProps> = ({
   onBringToFront,
   onDoubleTapCreate,
   onAddNote,
+  onFocusNote,
+  onClearFocus,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPanning, setIsPanning] = useState(false);
@@ -96,6 +104,11 @@ export const Canvas: React.FC<CanvasProps> = ({
       };
       setIsPanning(true);
       return;
+    }
+
+    // If focused on a note and clicking empty desk space, exit focus mode
+    if (focusedNoteId) {
+      onClearFocus?.();
     }
 
     const rect = containerRef.current?.getBoundingClientRect();
@@ -243,6 +256,7 @@ export const Canvas: React.FC<CanvasProps> = ({
           transform: `translate3d(${panOffset.x}px, ${panOffset.y}px, 0px) scale(${zoom})`,
           width: '5000px',
           height: '5000px',
+          transition: isSmoothTransition ? 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
         }}
       >
         {/* Render Notes */}
@@ -253,13 +267,40 @@ export const Canvas: React.FC<CanvasProps> = ({
             zoom={zoom}
             isSearchActive={isSearchActive}
             isSearchMatch={isNoteMatchingSearch(note)}
+            isFocused={focusedNoteId === note.id}
+            hasFocusedNote={Boolean(focusedNoteId)}
             onUpdate={onUpdateNote}
             onRequestDelete={onRequestDeleteNote}
             onDuplicate={onDuplicateNote}
             onBringToFront={onBringToFront}
+            onFocusNote={onFocusNote}
           />
         ))}
       </div>
+
+      {/* Floating Focus Mode Banner */}
+      {focusedNoteId && (
+        <div
+          id="focus-mode-indicator-pill"
+          className="absolute left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-slate-900/90 dark:bg-zinc-800/95 text-white shadow-2xl backdrop-blur-md border border-white/10 text-xs font-medium animate-in fade-in slide-in-from-top-2 duration-300 pointer-events-auto"
+          style={{
+            top: 'max(0.85rem, calc(0.6rem + env(safe-area-inset-top, 0px)))',
+          }}
+        >
+          <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+          <span className="font-semibold text-slate-100">Fokusläge</span>
+          <button
+            type="button"
+            id="btn-leave-focus-mode"
+            onClick={onClearFocus}
+            className="ml-1 px-2.5 py-0.5 rounded-full bg-white/20 hover:bg-white/30 active:scale-95 text-[11px] text-white font-medium transition-all cursor-pointer flex items-center gap-1"
+            title="Lämna fokusläge (Esc)"
+          >
+            <span>Lämna</span>
+            <kbd className="font-mono text-[10px] opacity-75">Esc</kbd>
+          </button>
+        </div>
+      )}
 
       {/* Empty State when no notes match filters */}
       {filteredNotes.length === 0 && (
@@ -325,9 +366,9 @@ export const Canvas: React.FC<CanvasProps> = ({
           left: 'max(1rem, calc(0.75rem + env(safe-area-inset-left, 0px)))',
         }}
       >
-        <span>💡 Dubbeltryck på skrivbordet för snabblapp</span>
+        <span>💡 Dubbelklicka en lapp för fokuszoom</span>
         <span>·</span>
-        <span>Apple Pencil & Touch redo</span>
+        <span>Dubbeltryck på skrivbordet för ny lapp</span>
       </div>
     </main>
   );

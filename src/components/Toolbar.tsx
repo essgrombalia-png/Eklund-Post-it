@@ -641,6 +641,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 </div>
               </div>
 
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-900/40">
+                <span className="text-xl">🔍</span>
+                <div>
+                  <p className="font-semibold text-amber-950 dark:text-amber-200">Fokus & Inzoomning (Dubbelklick)</p>
+                  <p className="text-xs text-amber-900/80 dark:text-amber-300/80 mt-0.5">
+                    Dubbelklicka på en lapp för att direkt centrera och zooma in på just den lappen med en smidig övergång och isolerat fokus. Tryck <kbd className="font-mono bg-black/10 dark:bg-white/20 px-1 py-0.2 rounded">Esc</kbd>, klicka på skrivbordet eller dubbelklicka igen för att återgå.
+                  </p>
+                </div>
+              </div>
+
               <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-zinc-800/50">
                 <span className="text-xl">👆</span>
                 <div>

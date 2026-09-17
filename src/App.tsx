@@ -44,6 +44,8 @@ export default function App() {
   const [noteToDelete, setNoteToDelete] = useState<PostItNote | null>(null);
   const [isAutoSaved, setIsAutoSaved] = useState<boolean>(true);
   const [toast, setToast] = useState<ToastMessage | null>(null);
+  const [focusedNoteId, setFocusedNoteId] = useState<string | null>(null);
+  const [isSmoothTransition, setIsSmoothTransition] = useState<boolean>(false);
 
   // Highest z-index tracking
   const maxZIndexRef = useRef<number>(
@@ -412,15 +414,87 @@ export default function App() {
   );
 
   // Zoom handlers
-  const handleZoomIn = () => setZoom((prev) => Math.min(1.8, +(prev + 0.15).toFixed(2)));
-  const handleZoomOut = () => setZoom((prev) => Math.max(0.4, +(prev - 0.15).toFixed(2)));
+  const handleZoomIn = () => {
+    setIsSmoothTransition(true);
+    setZoom((prev) => Math.min(1.8, +(prev + 0.15).toFixed(2)));
+    setTimeout(() => setIsSmoothTransition(false), 650);
+  };
+
+  const handleZoomOut = () => {
+    setIsSmoothTransition(true);
+    setZoom((prev) => Math.max(0.4, +(prev - 0.15).toFixed(2)));
+    setTimeout(() => setIsSmoothTransition(false), 650);
+  };
+
   const handleResetZoom = () => {
+    setIsSmoothTransition(true);
     setZoom(1);
     setPanOffset({ x: 0, y: 0 });
+    setFocusedNoteId(null);
+    setTimeout(() => setIsSmoothTransition(false), 650);
   };
+
+  // Focus and zoom smoothly on a specific note (Double-click / double-tap)
+  const handleFocusNote = useCallback(
+    (targetNote: PostItNote) => {
+      if (focusedNoteId === targetNote.id) {
+        setFocusedNoteId(null);
+        setIsSmoothTransition(true);
+        setTimeout(() => setIsSmoothTransition(false), 650);
+        showToast('Fokusläge avslutat');
+        return;
+      }
+
+      setFocusedNoteId(targetNote.id);
+      handleBringToFront(targetNote.id);
+
+      const viewportW = window.innerWidth;
+      const headerHeight = 90;
+      const viewportH = window.innerHeight - headerHeight;
+
+      const noteW = targetNote.width || 260;
+      const noteH = targetNote.height || 260;
+
+      // Calculate target zoom to comfortably fit note in center view
+      const idealZoomW = (viewportW * 0.55) / noteW;
+      const idealZoomH = (viewportH * 0.65) / noteH;
+      const targetZoom = Math.min(1.5, Math.max(1.05, Number(Math.min(idealZoomW, idealZoomH).toFixed(2))));
+
+      const noteCenterX = targetNote.x + noteW / 2;
+      const noteCenterY = targetNote.y + noteH / 2;
+
+      const targetPanX = Math.round(viewportW / 2 - noteCenterX * targetZoom);
+      const targetPanY = Math.round(headerHeight / 2 + viewportH / 2 - noteCenterY * targetZoom);
+
+      setIsSmoothTransition(true);
+      setZoom(targetZoom);
+      setPanOffset({ x: targetPanX, y: targetPanY });
+
+      setTimeout(() => {
+        setIsSmoothTransition(false);
+      }, 650);
+
+      const titleText = targetNote.title ? `"${targetNote.title}"` : 'lappen';
+      showToast(`Fokuserade på ${titleText} 🔍 (Dubbelklicka igen eller tryck Esc för att återgå)`);
+    },
+    [focusedNoteId, handleBringToFront, showToast]
+  );
+
+  const handleClearFocus = useCallback(() => {
+    if (focusedNoteId) {
+      setFocusedNoteId(null);
+      setIsSmoothTransition(true);
+      setTimeout(() => setIsSmoothTransition(false), 650);
+      showToast('Fokusläge avslutat');
+    }
+  }, [focusedNoteId, showToast]);
 
   // Fit all notes into iPad / screen viewport with smooth calculation
   const handleFitAllNotes = useCallback(() => {
+    setIsSmoothTransition(true);
+    setFocusedNoteId(null);
+    setTimeout(() => setIsSmoothTransition(false), 650);
+
     if (notes.length === 0) {
       setZoom(1);
       setPanOffset({ x: 0, y: 0 });
@@ -459,7 +533,7 @@ export default function App() {
     setZoom(targetZoomRounded);
     setPanOffset({ x: targetPanX, y: targetPanY });
     showToast(`Optimerad för iPad 11" Pro view (${Math.round(targetZoomRounded * 100)}%) 📐`);
-  }, [notes]);
+  }, [notes, showToast]);
 
   // Keyboard shortcuts (Cmd/Ctrl + Z, Cmd/Ctrl + Y, Cmd/Ctrl + N, Cmd/Ctrl + F, Cmd/Ctrl + 0, Cmd/Ctrl + D)
   useEffect(() => {
@@ -469,8 +543,18 @@ export default function App() {
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
         if (e.key === 'Escape') {
           target.blur();
+          if (focusedNoteId) {
+            handleClearFocus();
+          }
         }
         return;
+      }
+
+      if (e.key === 'Escape') {
+        if (focusedNoteId) {
+          handleClearFocus();
+          return;
+        }
       }
 
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
@@ -505,7 +589,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [canUndo, canRedo, undo, redo, handleAddNote, handleFitAllNotes, handleArrangeNotes, notes]);
+  }, [canUndo, canRedo, undo, redo, handleAddNote, handleFitAllNotes, handleArrangeNotes, notes, focusedNoteId, handleClearFocus, showToast]);
 
   const pinnedCount = notes.filter((n) => n.isPinned).length;
 
@@ -560,6 +644,8 @@ export default function App() {
         theme={theme}
         searchQuery={searchQuery}
         activeColorFilter={activeColorFilter}
+        isSmoothTransition={isSmoothTransition}
+        focusedNoteId={focusedNoteId}
         onPanChange={setPanOffset}
         onZoomChange={setZoom}
         onUpdateNote={handleUpdateNote}
@@ -568,6 +654,8 @@ export default function App() {
         onBringToFront={handleBringToFront}
         onDoubleTapCreate={handleDoubleTapCreate}
         onAddNote={(color) => handleAddNote(color)}
+        onFocusNote={handleFocusNote}
+        onClearFocus={handleClearFocus}
       />
 
       {/* Delete Confirmation Modal */}

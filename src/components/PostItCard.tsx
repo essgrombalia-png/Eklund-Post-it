@@ -35,10 +35,13 @@ interface PostItCardProps {
   zoom: number;
   isSearchActive: boolean;
   isSearchMatch: boolean;
+  isFocused?: boolean;
+  hasFocusedNote?: boolean;
   onUpdate: (updatedNote: PostItNote, recordHistory?: boolean) => void;
   onRequestDelete: (note: PostItNote) => void;
   onDuplicate: (note: PostItNote) => void;
   onBringToFront: (id: string) => void;
+  onFocusNote?: (note: PostItNote) => void;
 }
 
 export const PostItCard: React.FC<PostItCardProps> = ({
@@ -46,10 +49,13 @@ export const PostItCard: React.FC<PostItCardProps> = ({
   zoom,
   isSearchActive,
   isSearchMatch,
+  isFocused = false,
+  hasFocusedNote = false,
   onUpdate,
   onRequestDelete,
   onDuplicate,
   onBringToFront,
+  onFocusNote,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -277,6 +283,27 @@ export const PostItCard: React.FC<PostItCardProps> = ({
     return `${dateStr} ${timeStr}`;
   };
 
+  // Last tap detection for double-tap on touch/stylus
+  const noteLastTapRef = useRef<{ time: number; x: number; y: number }>({ time: 0, x: 0, y: 0 });
+
+  // Double-click handler to center and focus note
+  const handleCardDoubleClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.tagName === 'BUTTON' ||
+      target.closest('button') ||
+      target.closest('[data-no-drag="true"]') ||
+      target.closest('canvas')
+    ) {
+      return;
+    }
+    e.stopPropagation();
+    e.preventDefault();
+    onFocusNote?.(note);
+  };
+
   // Drag start handler (Pointer events)
   const handleDragPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     // Only primary button or touch/pen
@@ -299,6 +326,19 @@ export const PostItCard: React.FC<PostItCardProps> = ({
     ) {
       return;
     }
+
+    // Detect double tap on iPad Pro touch or double click
+    const now = Date.now();
+    const timeDiff = now - noteLastTapRef.current.time;
+    const distDiff = Math.hypot(e.clientX - noteLastTapRef.current.x, e.clientY - noteLastTapRef.current.y);
+
+    if (timeDiff < 320 && distDiff < 25) {
+      noteLastTapRef.current = { time: 0, x: 0, y: 0 };
+      e.stopPropagation();
+      onFocusNote?.(note);
+      return;
+    }
+    noteLastTapRef.current = { time: now, x: e.clientX, y: e.clientY };
 
     e.preventDefault();
     e.stopPropagation();
@@ -574,7 +614,17 @@ export const PostItCard: React.FC<PostItCardProps> = ({
   }[note.fontSize || 'base'];
 
   // Dim note if search is active and this note is not a match
-  const dimOpacity = isSearchActive && !isSearchMatch ? 'opacity-30 scale-98 pointer-events-none' : 'opacity-100';
+  const searchDimClass = isSearchActive && !isSearchMatch ? 'opacity-30 scale-98 pointer-events-none' : '';
+
+  // Focus isolation styling
+  let focusClass = '';
+  if (isFocused) {
+    focusClass = 'ring-4 ring-amber-400 dark:ring-amber-300 shadow-2xl scale-[1.02] z-50';
+  } else if (hasFocusedNote) {
+    focusClass = 'opacity-40 blur-[0.25px] scale-[0.985]';
+  }
+
+  const cardStatusClasses = searchDimClass || focusClass;
 
   return (
     <div
@@ -584,11 +634,12 @@ export const PostItCard: React.FC<PostItCardProps> = ({
         transform: `translate3d(${note.x}px, ${note.y}px, 0px) rotate(${isDragging ? 0 : note.rotation}deg) scale(${isDragging ? 1.025 : 1})`,
         width: `${note.width}px`,
         height: `${note.height}px`,
-        zIndex: note.isPinned ? 9999 + note.zIndex : note.zIndex,
-        transition: isDragging || isResizing ? 'none' : 'transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, opacity 0.2s ease',
+        zIndex: isFocused ? 10000 : note.isPinned ? 9999 + note.zIndex : note.zIndex,
+        transition: isDragging || isResizing ? 'none' : 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, opacity 0.35s ease, filter 0.35s ease',
       }}
-      className={`absolute select-none flex flex-col rounded-2xl border overflow-hidden box-border post-it-adhesive-bar ${colorConfig.bgClass} ${colorConfig.borderClass} ${colorConfig.textColorClass} ${isDragging ? 'post-it-shadow-lifted cursor-grabbing' : 'post-it-shadow post-it-curl cursor-grab'} ${dimOpacity} ${isSearchMatch && isSearchActive ? 'ring-4 ring-amber-500/80 shadow-2xl' : ''}`}
+      className={`absolute select-none flex flex-col rounded-2xl border overflow-hidden box-border post-it-adhesive-bar ${colorConfig.bgClass} ${colorConfig.borderClass} ${colorConfig.textColorClass} ${isDragging ? 'post-it-shadow-lifted cursor-grabbing' : 'post-it-shadow post-it-curl cursor-grab'} ${cardStatusClasses} ${isSearchMatch && isSearchActive ? 'ring-4 ring-amber-500/80 shadow-2xl' : ''}`}
       onPointerDown={() => onBringToFront(note.id)}
+      onDoubleClick={handleCardDoubleClick}
     >
       {/* Realistic 3D Pushpin visual when pinned */}
       {note.isPinned && (
