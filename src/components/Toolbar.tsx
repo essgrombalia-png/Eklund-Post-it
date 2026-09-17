@@ -133,7 +133,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   return (
     <header
       id="main-app-toolbar"
-      className="sticky top-0 left-0 right-0 z-40 w-full bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-slate-200 dark:border-zinc-800 transition-colors px-3 sm:px-5 py-2.5 shadow-xs"
+      className="sticky top-0 left-0 right-0 z-40 w-full bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-slate-200 dark:border-zinc-800 transition-colors safe-area-header pb-2 sm:pb-2.5 shadow-xs"
     >
       <div className="flex flex-col gap-2 max-w-7xl mx-auto">
         {/* Primary Top Bar Row */}

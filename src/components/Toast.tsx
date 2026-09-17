@@ -19,7 +19,10 @@ export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
   return (
     <div
       id="app-toast-notification"
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900/95 dark:bg-zinc-800/95 text-white shadow-2xl backdrop-blur-md border border-white/10 animate-in fade-in slide-in-from-bottom-4 duration-200 min-w-[280px] max-w-md justify-between"
+      className="fixed left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900/95 dark:bg-zinc-800/95 text-white shadow-2xl backdrop-blur-md border border-white/10 animate-in fade-in slide-in-from-bottom-4 duration-200 min-w-[280px] max-w-md justify-between"
+      style={{
+        bottom: 'max(1.25rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)))',
+      }}
     >
       <div className="flex items-center gap-2.5 min-w-0">
         {toast.type === 'undo' ? (

@@ -188,7 +188,7 @@ export const CameraModal: React.FC<CameraModalProps> = ({
   return (
     <div
       id="camera-modal-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center safe-area-modal-overlay bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

@@ -57,7 +57,7 @@ export const TrashModal: React.FC<TrashModalProps> = ({
       id="trash-modal-overlay"
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150 select-none"
+      className="fixed inset-0 z-50 flex items-center justify-center safe-area-modal-overlay bg-black/50 backdrop-blur-xs animate-in fade-in duration-150 select-none"
       onClick={onClose}
     >
       <div

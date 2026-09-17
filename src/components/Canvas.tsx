@@ -318,7 +318,13 @@ export const Canvas: React.FC<CanvasProps> = ({
       )}
 
       {/* Discreet bottom status hint for iPad users */}
-      <div className="hidden sm:flex absolute bottom-3 left-4 z-20 items-center gap-2 text-[11px] text-slate-500 dark:text-zinc-500 pointer-events-none bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xs px-2.5 py-1 rounded-full border border-slate-200/50 dark:border-zinc-800/50">
+      <div
+        className="hidden sm:flex absolute z-20 items-center gap-2 text-[11px] text-slate-500 dark:text-zinc-500 pointer-events-none bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xs px-2.5 py-1 rounded-full border border-slate-200/50 dark:border-zinc-800/50"
+        style={{
+          bottom: 'max(0.75rem, calc(0.5rem + env(safe-area-inset-bottom, 0px)))',
+          left: 'max(1rem, calc(0.75rem + env(safe-area-inset-left, 0px)))',
+        }}
+      >
         <span>💡 Dubbeltryck på skrivbordet för snabblapp</span>
         <span>·</span>
         <span>Apple Pencil & Touch redo</span>
