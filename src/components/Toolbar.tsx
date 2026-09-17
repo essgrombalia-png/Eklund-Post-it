@@ -49,6 +49,7 @@ interface ToolbarProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetZoom: () => void;
+  onFitAllNotes?: () => void;
   onArrangeNotes: () => void;
   onStackNotes: (mode?: 'center' | 'corner' | 'fan') => void;
   theme: DeskTheme;
@@ -76,6 +77,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onZoomIn,
   onZoomOut,
   onResetZoom,
+  onFitAllNotes,
   onArrangeNotes,
   onStackNotes,
   theme,
@@ -520,7 +522,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             })}
           </div>
 
-          {/* Zoom controls & Scale indicator */}
+          {/* Zoom controls & Scale indicator with iPad Fit button */}
           <div className="flex items-center gap-1 shrink-0 bg-slate-100 dark:bg-zinc-800/80 px-1.5 py-0.5 rounded-lg border border-slate-200 dark:border-zinc-700/70">
             <button
               id="btn-zoom-out"
@@ -553,6 +555,19 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             >
               <ZoomIn className="h-3.5 w-3.5" />
             </button>
+
+            {onFitAllNotes && (
+              <button
+                id="btn-fit-screen"
+                type="button"
+                onClick={onFitAllNotes}
+                className="flex h-8 w-8 items-center justify-center rounded text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/40 active:scale-95 ml-0.5"
+                title={'Passa för iPad 11" Pro / Skärmen (Visa alla lappar, Cmd+0)'}
+                aria-label="Passa för iPad 11 Pro"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -575,8 +590,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                   iPad
                 </div>
                 <div>
-                  <h3 className="font-bold text-base">iPad Pro 11" & Touch Guide</h3>
-                  <p className="text-xs text-slate-500 dark:text-zinc-400">Optimerad för gester & Apple Pencil</p>
+                  <h3 className="font-bold text-base">iPad 11" Pro & Touch Guide</h3>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400">Optimerad för Apple Pencil, Touch & Magic Keyboard</p>
                 </div>
               </div>
               <button
@@ -594,8 +609,35 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 <div>
                   <p className="font-semibold text-slate-900 dark:text-white">Knip & zooma (Pinch-to-zoom)</p>
                   <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-                    Använd två fingrar på skrivbordet för att zooma in/ut och panorera smidigt.
+                    Använd två fingrar på skrivbordet för att zooma in/ut och panorera smidigt. Tryck på <Maximize2 className="inline h-3 w-3 text-amber-500" /> för att direkt anpassa alla lappar till iPad 11" Pro-skärmen.
                   </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-zinc-800/50">
+                <span className="text-xl">✏️</span>
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-white">Apple Pencil & Stylus Stöd</p>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                    Tryck på penn-ikonen i lappens rubrik för att rita frihand. Appen har inbyggd handflatsavvisning (palm rejection) och stödjer pennstreck med justerbar tjocklek och färg.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-zinc-800/50">
+                <span className="text-xl">⌨️</span>
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-white">iPad Magic Keyboard Genvägar</p>
+                  <div className="grid grid-cols-2 gap-1.5 mt-1.5 text-xs">
+                    <span className="font-mono bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">⌘ + N : Ny lapp</span>
+                    <span className="font-mono bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">⌘ + Z : Ångra</span>
+                    <span className="font-mono bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">⌘ + ⇧ + Z : Gör om</span>
+                    <span className="font-mono bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">⌘ + F : Sök lappar</span>
+                    <span className="font-mono bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">⌘ + 0 : Passa skärm</span>
+                    <span className="font-mono bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">⌘ + D : Rutnät</span>
+                    <span className="font-mono bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">⌘ + S : Spara backup</span>
+                    <span className="font-mono bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">Esc : Lämna fokus</span>
+                  </div>
                 </div>
               </div>
 
@@ -605,16 +647,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                   <p className="font-semibold text-slate-900 dark:text-white">Dubbeltryck för snabblapp</p>
                   <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
                     Dubbeltryck var som helst på det tomma skrivbordet för att skapa en lapp på exakt den platsen.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-zinc-800/50">
-                <span className="text-xl">✏️</span>
-                <div>
-                  <p className="font-semibold text-slate-900 dark:text-white">Apple Pencil Skiss-mod</p>
-                  <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-                    Tryck på penn-ikonen på valfri lapp för att rita frihand med Apple Pencil och tryckkänslighet.
                   </p>
                 </div>
               </div>
@@ -630,31 +662,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               </div>
 
               <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-zinc-800/50">
-                <span className="text-xl">📐</span>
+                <span className="text-xl">🗂️</span>
                 <div>
-                  <p className="font-semibold text-slate-900 dark:text-white">Ändra storlek</p>
+                  <p className="font-semibold text-slate-900 dark:text-white">Stapla & Ändringshistorik</p>
                   <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-                    Dra i det ribbade handtaget nere i lappens högra hörn (44px bekväm touchyta).
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-zinc-800/50">
-                <span className="text-xl">💾</span>
-                <div>
-                  <p className="font-semibold text-slate-900 dark:text-white">Automatisk sparning</p>
-                  <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-                    Alla ändringar och teckningar sparas lokalt i webbläsaren i realtid. Du kan även exportera/importera JSON-säkerhetskopia.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-zinc-800/50">
-                <span className="text-xl">🗑️</span>
-                <div>
-                  <p className="font-semibold text-slate-900 dark:text-white">Papperskorg & 30 dagars ångerfrist</p>
-                  <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-                    Raderade lappar sparas i 30 dagar i papperskorgen innan de försvinner permanent. Du kan enkelt återställa dem när som helst.
+                    Klicka på "Stapla" för att samla alla lappar i mitten, hörn eller solfjäder. Klicka på klockan eller historikikonen på en lapp för att återställa tidigare versioner.
                   </p>
                 </div>
               </div>

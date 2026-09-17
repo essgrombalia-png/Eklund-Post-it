@@ -419,12 +419,57 @@ export default function App() {
     setPanOffset({ x: 0, y: 0 });
   };
 
-  // Keyboard shortcuts (Cmd/Ctrl + Z, Cmd/Ctrl + Y, Cmd/Ctrl + N)
+  // Fit all notes into iPad / screen viewport with smooth calculation
+  const handleFitAllNotes = useCallback(() => {
+    if (notes.length === 0) {
+      setZoom(1);
+      setPanOffset({ x: 0, y: 0 });
+      showToast('Skrivbordet återställt.');
+      return;
+    }
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    notes.forEach((n) => {
+      minX = Math.min(minX, n.x);
+      minY = Math.min(minY, n.y);
+      maxX = Math.max(maxX, n.x + n.width);
+      maxY = Math.max(maxY, n.y + n.height);
+    });
+
+    const padding = 60;
+    const contentWidth = maxX - minX + padding * 2;
+    const contentHeight = maxY - minY + padding * 2;
+
+    const viewportW = window.innerWidth;
+    const viewportH = window.innerHeight - 110; // minus toolbar header height
+
+    const targetZoom = Math.min(1.25, Math.max(0.45, Math.min(viewportW / contentWidth, viewportH / contentHeight)));
+    const targetZoomRounded = Number(targetZoom.toFixed(2));
+
+    const contentCenterX = (minX + maxX) / 2;
+    const contentCenterY = (minY + maxY) / 2;
+
+    const targetPanX = Math.round(viewportW / 2 - contentCenterX * targetZoomRounded);
+    const targetPanY = Math.round(viewportH / 2 - contentCenterY * targetZoomRounded);
+
+    setZoom(targetZoomRounded);
+    setPanOffset({ x: targetPanX, y: targetPanY });
+    showToast(`Optimerad för iPad 11" Pro view (${Math.round(targetZoomRounded * 100)}%) 📐`);
+  }, [notes]);
+
+  // Keyboard shortcuts (Cmd/Ctrl + Z, Cmd/Ctrl + Y, Cmd/Ctrl + N, Cmd/Ctrl + F, Cmd/Ctrl + 0, Cmd/Ctrl + D)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger shortcuts when typing inside inputs/textareas
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        if (e.key === 'Escape') {
+          target.blur();
+        }
         return;
       }
 
@@ -441,12 +486,26 @@ export default function App() {
       } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n') {
         e.preventDefault();
         handleAddNote();
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        const searchInput = document.getElementById('search-notes-input');
+        searchInput?.focus();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === '0') {
+        e.preventDefault();
+        handleFitAllNotes();
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        handleArrangeNotes();
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        exportNotesToJson(notes);
+        showToast('Säkerhetskopia sparad! 💾');
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [canUndo, canRedo, undo, redo, handleAddNote]);
+  }, [canUndo, canRedo, undo, redo, handleAddNote, handleFitAllNotes, handleArrangeNotes, notes]);
 
   const pinnedCount = notes.filter((n) => n.isPinned).length;
 
@@ -483,6 +542,7 @@ export default function App() {
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onResetZoom={handleResetZoom}
+        onFitAllNotes={handleFitAllNotes}
         onArrangeNotes={handleArrangeNotes}
         onStackNotes={handleStackNotes}
         theme={theme}

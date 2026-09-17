@@ -587,7 +587,7 @@ export const PostItCard: React.FC<PostItCardProps> = ({
         zIndex: note.isPinned ? 9999 + note.zIndex : note.zIndex,
         transition: isDragging || isResizing ? 'none' : 'transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, opacity 0.2s ease',
       }}
-      className={`absolute select-none flex flex-col rounded-xl border post-it-adhesive-bar ${colorConfig.bgClass} ${colorConfig.borderClass} ${colorConfig.textColorClass} ${isDragging ? 'post-it-shadow-lifted cursor-grabbing' : 'post-it-shadow post-it-curl cursor-grab'} ${dimOpacity} ${isSearchMatch && isSearchActive ? 'ring-4 ring-amber-500/80 shadow-2xl' : ''}`}
+      className={`absolute select-none flex flex-col rounded-2xl border overflow-hidden box-border post-it-adhesive-bar ${colorConfig.bgClass} ${colorConfig.borderClass} ${colorConfig.textColorClass} ${isDragging ? 'post-it-shadow-lifted cursor-grabbing' : 'post-it-shadow post-it-curl cursor-grab'} ${dimOpacity} ${isSearchMatch && isSearchActive ? 'ring-4 ring-amber-500/80 shadow-2xl' : ''}`}
       onPointerDown={() => onBringToFront(note.id)}
     >
       {/* Realistic 3D Pushpin visual when pinned */}
@@ -622,44 +622,25 @@ export const PostItCard: React.FC<PostItCardProps> = ({
         onPointerDown={handleDragPointerDown}
         onPointerMove={handleDragPointerMove}
         onPointerUp={handleDragPointerUp}
-        className={`touch-drag-area flex items-center justify-between px-3 py-2 rounded-t-xl border-b border-black/5 ${colorConfig.headerClass} select-none`}
+        className={`touch-drag-area flex items-center justify-between px-2.5 py-1.5 border-b border-black/5 ${colorConfig.headerClass} select-none shrink-0 w-full min-w-0`}
       >
-        <div className="flex items-center gap-1.5 flex-1 min-w-0 pr-1">
-          <GripHorizontal className="h-4 w-4 opacity-40 shrink-0" />
+        <div className="flex items-center gap-1 flex-1 min-w-0 pr-1">
+          <GripHorizontal className="h-3.5 w-3.5 opacity-40 shrink-0" />
           <input
             id={`postit-title-input-${note.id}`}
             type="text"
             data-no-drag="true"
-            placeholder="Titel (valfritt)..."
+            placeholder="Titel..."
             value={note.title}
             onChange={handleTitleChange}
             onBlur={handleBlur}
             maxLength={60}
-            className={`w-full bg-transparent font-bold text-sm outline-none placeholder:text-black/30 truncate ${colorConfig.textColorClass}`}
+            className={`w-full bg-transparent font-bold text-xs sm:text-sm outline-none placeholder:text-black/30 truncate ${colorConfig.textColorClass}`}
           />
         </div>
 
-        {/* Quick Header Actions - Sleek, proportional 32px buttons */}
+        {/* Quick Header Actions - Sleek, proportional 28px buttons */}
         <div className="flex items-center gap-0.5 shrink-0" data-no-drag="true">
-          {/* Camera Button to capture/insert photo */}
-          <button
-            id={`btn-camera-${note.id}`}
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowCameraModal(true);
-            }}
-            className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all ${
-              note.imageUrl
-                ? 'bg-amber-400 text-slate-950 ring-1 ring-black/20 shadow-xs'
-                : 'opacity-60 hover:opacity-100 hover:bg-black/10 active:scale-95'
-            }`}
-            title="Kamera - Infoga bild via kameran"
-            aria-label="Kamera"
-          >
-            <Camera className="h-3.5 w-3.5" />
-          </button>
-
           {/* Apple Pencil / Freehand Sketch Mode toggle */}
           <button
             id={`btn-sketch-mode-${note.id}`}
@@ -668,9 +649,9 @@ export const PostItCard: React.FC<PostItCardProps> = ({
               e.stopPropagation();
               handleToggleSketchMode();
             }}
-            className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all ${
+            className={`flex h-7 w-7 items-center justify-center rounded-md transition-all ${
               isSketchMode
-                ? 'bg-amber-400 text-slate-950 shadow-xs ring-1 ring-black/20'
+                ? 'bg-amber-400 text-slate-950 shadow-2xs ring-1 ring-black/20'
                 : note.drawingData
                 ? 'text-amber-900 bg-amber-400/30 hover:bg-amber-400/50'
                 : 'opacity-60 hover:opacity-100 hover:bg-black/10 active:scale-95'
@@ -689,11 +670,11 @@ export const PostItCard: React.FC<PostItCardProps> = ({
               e.stopPropagation();
               setShowColorPicker(!showColorPicker);
             }}
-            className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-black/10 active:scale-95 transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-black/10 active:scale-95 transition-colors"
             title="Ändra färg"
             aria-label="Ändra färg"
           >
-            <div className={`h-3.5 w-3.5 rounded-full ${colorConfig.swatchClass} ring-1 ring-black/25 shadow-xs`} />
+            <div className={`h-3.5 w-3.5 rounded-full ${colorConfig.swatchClass} ring-1 ring-black/25 shadow-2xs`} />
           </button>
 
           {/* Pin toggle */}
@@ -704,28 +685,13 @@ export const PostItCard: React.FC<PostItCardProps> = ({
               e.stopPropagation();
               handleTogglePin();
             }}
-            className={`flex h-8 w-8 items-center justify-center rounded-lg hover:bg-black/10 active:scale-95 transition-colors ${
-              note.isPinned ? 'text-amber-800 bg-black/15 shadow-xs' : 'opacity-60 hover:opacity-100'
+            className={`flex h-7 w-7 items-center justify-center rounded-md hover:bg-black/10 active:scale-95 transition-colors ${
+              note.isPinned ? 'text-amber-800 bg-black/15 shadow-2xs' : 'opacity-60 hover:opacity-100'
             }`}
             title={note.isPinned ? 'Lossa lapp' : 'Fäst lapp'}
             aria-label={note.isPinned ? 'Lossa lapp' : 'Fäst lapp'}
           >
             <Pin className={`h-3.5 w-3.5 ${note.isPinned ? 'fill-current rotate-45' : ''}`} />
-          </button>
-
-          {/* Version History & Timeline quick toggle */}
-          <button
-            id={`btn-header-history-${note.id}`}
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowHistoryModal(true);
-            }}
-            className="flex h-8 w-8 items-center justify-center rounded-lg opacity-60 hover:opacity-100 hover:bg-black/10 active:scale-95 transition-all"
-            title="Visa ändringshistorik & återställ tidigare versioner"
-            aria-label="Ändringshistorik"
-          >
-            <History className="h-3.5 w-3.5" />
           </button>
 
           {/* Delete button */}
@@ -736,7 +702,7 @@ export const PostItCard: React.FC<PostItCardProps> = ({
               e.stopPropagation();
               onRequestDelete(note);
             }}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-red-600/70 hover:text-red-700 hover:bg-red-500/15 active:scale-95 transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-red-600/70 hover:text-red-700 hover:bg-red-500/15 active:scale-95 transition-colors"
             title="Ta bort lapp till papperskorgen"
             aria-label="Ta bort lapp"
           >
@@ -750,7 +716,7 @@ export const PostItCard: React.FC<PostItCardProps> = ({
         <div
           id={`color-picker-palette-${note.id}`}
           data-no-drag="true"
-          className="flex items-center justify-around px-2 py-1.5 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xs border-b border-black/10 shadow-inner z-20"
+          className="flex items-center justify-around px-2 py-1.5 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xs border-b border-black/10 shadow-inner z-20 w-full"
         >
           {(['yellow', 'pink', 'blue', 'green', 'orange', 'purple'] as PostItColor[]).map((c) => {
             const cfg = COLOR_CONFIGS[c];
@@ -761,11 +727,11 @@ export const PostItCard: React.FC<PostItCardProps> = ({
                 type="button"
                 id={`btn-select-color-${c}-${note.id}`}
                 onClick={() => handleColorChange(c)}
-                className="relative flex h-8 w-8 items-center justify-center rounded-full active:scale-90 transition-transform"
+                className="relative flex h-7 w-7 items-center justify-center rounded-full active:scale-90 transition-transform"
                 title={cfg.name}
               >
                 <span
-                  className={`h-5 w-5 rounded-full ${cfg.swatchClass} shadow-xs border border-black/20 flex items-center justify-center ${
+                  className={`h-5 w-5 rounded-full ${cfg.swatchClass} shadow-2xs border border-black/20 flex items-center justify-center ${
                     isSelected ? 'ring-2 ring-slate-800 dark:ring-white ring-offset-1' : ''
                   }`}
                 >
@@ -783,7 +749,7 @@ export const PostItCard: React.FC<PostItCardProps> = ({
         onPointerDown={handleDragPointerDown}
         onPointerMove={handleDragPointerMove}
         onPointerUp={handleDragPointerUp}
-        className="touch-drag-area flex-1 flex flex-col px-3.5 py-2 min-h-0 relative overflow-hidden"
+        className="touch-drag-area flex-1 flex flex-col px-3 py-1.5 min-h-0 relative overflow-hidden w-full"
       >
         {/* Attached Camera Photo with full sizing, rotation, fit, filters and touch resizing */}
         {note.imageUrl && (
@@ -841,7 +807,7 @@ export const PostItCard: React.FC<PostItCardProps> = ({
           onChange={handleContentChange}
           onBlur={handleBlur}
           placeholder={isSketchMode ? '' : 'Skriv din anteckning här...'}
-          className={`w-full flex-1 bg-transparent resize-none outline-none leading-relaxed overflow-y-auto whitespace-pre-wrap break-words custom-note-scrollbar ${fontClass} ${fontSizeClass} ${colorConfig.textColorClass} placeholder:text-black/30 selection:bg-black/15 ${
+          className={`w-full flex-1 bg-transparent resize-none outline-none leading-relaxed overflow-y-auto whitespace-pre-wrap break-words break-all custom-note-scrollbar ${fontClass} ${fontSizeClass} ${colorConfig.textColorClass} placeholder:text-black/30 selection:bg-black/15 ${
             isSketchMode ? 'pointer-events-none opacity-40' : 'opacity-100'
           }`}
         />
@@ -863,11 +829,11 @@ export const PostItCard: React.FC<PostItCardProps> = ({
       {/* Note Footer: Metadata, Styling tools, and Corner Resize handle */}
       <div
         id={`postit-footer-${note.id}`}
-        className="relative flex items-center justify-between px-3 py-1 border-t border-black/[0.06] text-[11px] text-black/60 select-none shrink-0 bg-black/[0.015]"
+        className="relative flex items-center justify-between px-2 py-1 border-t border-black/[0.06] text-[11px] text-black/60 select-none shrink-0 bg-black/[0.02] w-full min-w-0 overflow-hidden"
       >
-        {/* Left footer: Typography, sizing, duplicate & export */}
-        <div className="flex items-center gap-0.5" data-no-drag="true">
-          {/* Camera button in footer */}
+        {/* Left footer: Typography, sizing, camera, history, duplicate & export (compact icon buttons) */}
+        <div className="flex items-center gap-0.5 shrink-0 min-w-0" data-no-drag="true">
+          {/* Camera photo button in footer */}
           <button
             id={`btn-footer-camera-${note.id}`}
             type="button"
@@ -875,13 +841,13 @@ export const PostItCard: React.FC<PostItCardProps> = ({
               e.stopPropagation();
               setShowCameraModal(true);
             }}
-            className={`flex h-7 px-1.5 items-center justify-center rounded-md hover:bg-black/10 active:scale-95 transition-all text-[11px] font-semibold ${
-              note.imageUrl ? 'bg-amber-400 text-slate-900 font-bold shadow-2xs' : 'opacity-70 hover:opacity-100'
+            className={`flex h-7 w-7 items-center justify-center rounded-md hover:bg-black/10 active:scale-95 transition-all ${
+              note.imageUrl ? 'bg-amber-400 text-slate-900 font-bold shadow-2xs ring-1 ring-black/15' : 'opacity-70 hover:opacity-100'
             }`}
-            title="Kamera: Ta och infoga bild i lappen"
+            title="Kamera / Foto: Ta eller infoga bild i lappen"
+            aria-label="Kamera"
           >
-            <Camera className="h-3 w-3 mr-0.5" />
-            <span>Foto</span>
+            <Camera className="h-3.5 w-3.5" />
           </button>
 
           {/* Toggle handwriting vs clean sans */}
@@ -889,11 +855,11 @@ export const PostItCard: React.FC<PostItCardProps> = ({
             id={`btn-toggle-font-${note.id}`}
             type="button"
             onClick={handleToggleFont}
-            className="flex h-7 px-1.5 items-center justify-center rounded-md hover:bg-black/10 active:scale-95 transition-all text-[11px] font-semibold"
-            title={note.fontFamily === 'handwriting' ? 'Byt till standardfont' : 'Byt till handskriven stil'}
+            className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-black/10 active:scale-95 transition-all opacity-75 hover:opacity-100 text-[11px] font-bold"
+            title={note.fontFamily === 'handwriting' ? 'Byt till rak standardfont' : 'Byt till handskriven stil'}
+            aria-label="Byt typsnitt"
           >
-            <Type className="h-3 w-3 mr-0.5" />
-            <span>{note.fontFamily === 'handwriting' ? 'Hand' : 'Rak'}</span>
+            <Type className="h-3.5 w-3.5" />
           </button>
 
           {/* Font size toggle */}
@@ -901,8 +867,9 @@ export const PostItCard: React.FC<PostItCardProps> = ({
             id={`btn-cycle-size-${note.id}`}
             type="button"
             onClick={handleCycleFontSize}
-            className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-black/10 active:scale-95 transition-all text-[11px] font-bold"
-            title={`Textstorlek: ${note.fontSize || 'base'}`}
+            className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-black/10 active:scale-95 transition-all opacity-75 hover:opacity-100 text-[11px] font-bold"
+            title={`Textstorlek: ${note.fontSize === 'sm' ? 'Liten (S)' : note.fontSize === 'lg' ? 'Stor (L)' : 'Medium (M)'}`}
+            aria-label="Ändra textstorlek"
           >
             {note.fontSize === 'sm' ? 'S' : note.fontSize === 'lg' ? 'L' : 'M'}
           </button>
@@ -915,12 +882,13 @@ export const PostItCard: React.FC<PostItCardProps> = ({
               e.stopPropagation();
               setShowHistoryModal(true);
             }}
-            className="flex h-7 px-1.5 items-center justify-center rounded-md hover:bg-black/10 active:scale-95 transition-all text-[11px] font-semibold opacity-70 hover:opacity-100"
-            title="Ändringshistorik & tidslinje (återställ tidigare versioner)"
+            className={`flex h-7 w-7 items-center justify-center rounded-md hover:bg-black/10 active:scale-95 transition-all ${
+              note.versions && note.versions.length > 1 ? 'opacity-90 text-amber-900 font-bold' : 'opacity-70 hover:opacity-100'
+            }`}
+            title={`Ändringshistorik & tidslinje (${note.versions?.length || 1} versioner)`}
             aria-label="Ändringshistorik"
           >
-            <History className="h-3 w-3 mr-0.5" />
-            <span>Historik</span>
+            <History className="h-3.5 w-3.5" />
           </button>
 
           {/* Duplicate note */}
@@ -930,8 +898,9 @@ export const PostItCard: React.FC<PostItCardProps> = ({
             onClick={() => onDuplicate(note)}
             className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-black/10 active:scale-95 transition-all opacity-70 hover:opacity-100"
             title="Duplicera lapp"
+            aria-label="Duplicera lapp"
           >
-            <Copy className="h-3 w-3" />
+            <Copy className="h-3.5 w-3.5" />
           </button>
 
           {/* Download / Export note as PNG */}
@@ -941,13 +910,14 @@ export const PostItCard: React.FC<PostItCardProps> = ({
             onClick={handleDownloadNoteAsPng}
             className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-black/10 active:scale-95 transition-all opacity-70 hover:opacity-100"
             title="Ladda ner lappen som PNG-bild"
+            aria-label="Ladda ner som bild"
           >
-            <Download className="h-3 w-3" />
+            <Download className="h-3.5 w-3.5" />
           </button>
         </div>
 
         {/* Right side: Clickable Timestamp & Corner Resize */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0 ml-1">
           <button
             type="button"
             id={`btn-timestamp-${note.id}`}
@@ -956,7 +926,7 @@ export const PostItCard: React.FC<PostItCardProps> = ({
               e.stopPropagation();
               setShowHistoryModal(true);
             }}
-            className="text-[10px] opacity-60 hover:opacity-100 font-mono truncate max-w-[85px] hover:underline cursor-pointer flex items-center gap-0.5"
+            className="text-[10px] opacity-60 hover:opacity-100 font-mono truncate max-w-[60px] sm:max-w-[75px] hover:underline cursor-pointer flex items-center gap-0.5"
             title={`Senast ändrad: ${new Date(note.updatedAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })} - Klicka för ändringshistorik`}
           >
             <Clock className="h-2.5 w-2.5 shrink-0" />
@@ -970,7 +940,7 @@ export const PostItCard: React.FC<PostItCardProps> = ({
             onPointerDown={handleResizePointerDown}
             onPointerMove={handleResizePointerMove}
             onPointerUp={handleResizePointerUp}
-            className="touch-drag-area -mr-1.5 flex h-7 w-7 items-center justify-center cursor-se-resize active:scale-110 transition-transform opacity-40 hover:opacity-80"
+            className="touch-drag-area -mr-1 flex h-7 w-7 items-center justify-center cursor-se-resize active:scale-110 transition-transform opacity-40 hover:opacity-80 shrink-0"
             title="Dra för att ändra storlek"
             aria-label="Ändra storlek"
           >
