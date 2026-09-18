@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { PostItNote, DeskTheme, PostItColor, COLOR_CONFIGS } from '../types';
+import { PostItNote, DeskTheme, PostItColor, COLOR_CONFIGS, DESK_THEMES } from '../types';
 import { PostItCard } from './PostItCard';
 import { Plus, StickyNote, RotateCcw } from 'lucide-react';
 
@@ -228,12 +228,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     }
   };
 
-  const themeClass =
-    theme === 'light'
-      ? 'desk-grid-light'
-      : theme === 'dark'
-      ? 'desk-grid-dark'
-      : 'desk-cork-light';
+  const themeClass = DESK_THEMES[theme]?.bgClass || 'desk-grid-light';
 
   return (
     <main

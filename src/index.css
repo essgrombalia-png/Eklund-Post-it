@@ -48,14 +48,40 @@
   font-family: 'Caveat', cursive, sans-serif;
 }
 
+.font-kalam {
+  font-family: 'Kalam', cursive, sans-serif;
+}
+
+.font-casual {
+  font-family: 'Patrick Hand', cursive, sans-serif;
+}
+
 .font-sans-clean {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Digital desk grid patterns */
+/* Paper styles for notes */
+.paper-pattern-lines {
+  background-image: repeating-linear-gradient(to bottom, transparent, transparent 27px, rgba(0, 0, 0, 0.08) 28px);
+  background-size: 100% 28px;
+}
+
+.paper-pattern-grid {
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.paper-pattern-dots {
+  background-image: radial-gradient(rgba(0, 0, 0, 0.15) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+/* Digital desk grid and tactile textures */
 .desk-grid-light {
   background-color: #f1f5f9;
-  background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+  background-image: radial-gradient(#94a3b8 1.1px, transparent 1.1px);
   background-size: 24px 24px;
 }
 
@@ -65,10 +91,91 @@
   background-size: 24px 24px;
 }
 
+.desk-cork,
 .desk-cork-light {
-  background-color: #f7ede2;
-  background-image: radial-gradient(#e0cfb8 1px, transparent 1px);
-  background-size: 20px 20px;
+  background-color: #cca479;
+  background-image:
+    radial-gradient(ellipse at 50% 50%, rgba(120, 60, 15, 0.08) 0%, transparent 80%),
+    radial-gradient(#ba8f62 1.5px, transparent 1.5px),
+    radial-gradient(#7c4e20 1px, transparent 1px),
+    repeating-linear-gradient(45deg, rgba(160, 110, 60, 0.08) 0px, rgba(160, 110, 60, 0.08) 2px, transparent 2px, transparent 12px),
+    repeating-linear-gradient(-45deg, rgba(110, 70, 30, 0.06) 0px, rgba(110, 70, 30, 0.06) 2px, transparent 2px, transparent 16px);
+  background-size: 100% 100%, 32px 32px, 18px 18px, 24px 24px, 32px 32px;
+}
+
+.desk-wood {
+  background-color: #c9a47c;
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.06) 0px,
+      rgba(255, 255, 255, 0.06) 1px,
+      transparent 1px,
+      transparent 60px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.05) 0px,
+      rgba(0, 0, 0, 0.02) 20px,
+      rgba(255, 255, 255, 0.04) 40px,
+      rgba(0, 0, 0, 0.06) 80px,
+      transparent 120px
+    ),
+    linear-gradient(
+      180deg,
+      #d4b28c 0%,
+      #c49a6c 25%,
+      #ba8e5e 50%,
+      #c79f72 75%,
+      #d4b28c 100%
+    );
+  background-size: 120px 100%, 100% 200px, 100% 400px;
+}
+
+.desk-dark-wood {
+  background-color: #271a14;
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.03) 0px,
+      rgba(255, 255, 255, 0.03) 1px,
+      transparent 1px,
+      transparent 70px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.25) 0px,
+      rgba(255, 255, 255, 0.03) 30px,
+      rgba(0, 0, 0, 0.18) 70px,
+      transparent 140px
+    ),
+    linear-gradient(
+      180deg,
+      #35241b 0%,
+      #271a14 30%,
+      #1f140f 60%,
+      #2e1f17 100%
+    );
+  background-size: 140px 100%, 100% 280px, 100% 500px;
+}
+
+.desk-paper {
+  background-color: #fbf9f4;
+  background-image:
+    radial-gradient(#d6cec0 0.8px, transparent 0.8px),
+    linear-gradient(to right, rgba(160, 150, 135, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(160, 150, 135, 0.04) 1px, transparent 1px);
+  background-size: 16px 16px, 32px 32px, 32px 32px;
+}
+
+.desk-blueprint {
+  background-color: #162a45;
+  background-image:
+    linear-gradient(rgba(147, 197, 253, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(147, 197, 253, 0.18) 1px, transparent 1px),
+    linear-gradient(rgba(147, 197, 253, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(147, 197, 253, 0.06) 1px, transparent 1px);
+  background-size: 80px 80px, 80px 80px, 16px 16px, 16px 16px;
 }
 
 /* Realistic tactile Post-it drop shadow */

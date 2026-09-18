@@ -69,7 +69,16 @@ export function saveNotesToStorage(notes: PostItNote[]): boolean {
 export function loadThemeFromStorage(): DeskTheme {
   try {
     const saved = localStorage.getItem(STORAGE_KEY_THEME) as DeskTheme;
-    if (saved === 'light' || saved === 'dark' || saved === 'cork') {
+    const validThemes: DeskTheme[] = [
+      'light',
+      'dark',
+      'cork',
+      'wood',
+      'dark-wood',
+      'paper',
+      'blueprint',
+    ];
+    if (saved && validThemes.includes(saved)) {
       return saved;
     }
   } catch {

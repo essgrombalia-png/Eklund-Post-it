@@ -9,6 +9,7 @@ import {
   MAX_NOTE_HEIGHT,
   FontFamilyType,
   FontSizeType,
+  NotePaperStyle,
 } from '../types';
 import {
   Pin,
@@ -23,6 +24,7 @@ import {
   Download,
   Camera,
   History,
+  Grid,
 } from 'lucide-react';
 import { NoteSketchCanvas } from './NoteSketchCanvas';
 import { CameraModal } from './CameraModal';
@@ -217,9 +219,52 @@ export const PostItCard: React.FC<PostItCardProps> = ({
         }
       }
 
+      // Draw paper pattern if configured
+      if (note.paperStyle === 'lined') {
+        ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+        ctx.lineWidth = 1;
+        for (let y = 50; y < note.height - 20; y += 28) {
+          ctx.beginPath();
+          ctx.moveTo(10, y);
+          ctx.lineTo(note.width - 10, y);
+          ctx.stroke();
+        }
+      } else if (note.paperStyle === 'grid') {
+        ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+        ctx.lineWidth = 1;
+        for (let x = 16; x < note.width - 10; x += 20) {
+          ctx.beginPath();
+          ctx.moveTo(x, 40);
+          ctx.lineTo(x, note.height - 10);
+          ctx.stroke();
+        }
+        for (let y = 48; y < note.height - 10; y += 20) {
+          ctx.beginPath();
+          ctx.moveTo(10, y);
+          ctx.lineTo(note.width - 10, y);
+          ctx.stroke();
+        }
+      } else if (note.paperStyle === 'dots') {
+        ctx.fillStyle = 'rgba(0,0,0,0.14)';
+        for (let x = 18; x < note.width - 12; x += 18) {
+          for (let y = 50; y < note.height - 12; y += 18) {
+            ctx.beginPath();
+            ctx.arc(x, y, 1, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
       // Note text content
       const fontSizePx = note.fontSize === 'sm' ? 14 : note.fontSize === 'lg' ? 20 : 16;
-      const fontFamily = note.fontFamily === 'handwriting' ? 'Caveat, cursive' : '"Plus Jakarta Sans", sans-serif';
+      let fontFamily = '"Plus Jakarta Sans", sans-serif';
+      if (note.fontFamily === 'handwriting') {
+        fontFamily = 'Caveat, cursive';
+      } else if (note.fontFamily === 'kalam') {
+        fontFamily = 'Kalam, cursive';
+      } else if (note.fontFamily === 'casual') {
+        fontFamily = '"Patrick Hand", cursive';
+      }
       ctx.font = `${fontSizePx}px ${fontFamily}`;
       ctx.fillStyle = scheme.text;
 
@@ -508,10 +553,17 @@ export const PostItCard: React.FC<PostItCardProps> = ({
     });
   };
 
-  // Toggle font family (Handwriting vs Clean Sans)
+  // Toggle font family (Standard Sans -> Caveat Handwriting -> Kalam -> Patrick Hand)
   const handleToggleFont = () => {
-    const nextFont: FontFamilyType =
-      note.fontFamily === 'handwriting' ? 'sans' : 'handwriting';
+    const cycleOrder: FontFamilyType[] = ['sans', 'handwriting', 'kalam', 'casual'];
+    const currentIdx = cycleOrder.indexOf(note.fontFamily || 'sans');
+    const nextFont = cycleOrder[(currentIdx + 1) % cycleOrder.length] || 'sans';
+    const fontNames: Record<FontFamilyType, string> = {
+      sans: 'Standard (Plus Jakarta Sans)',
+      handwriting: 'Handskrift (Caveat)',
+      kalam: 'Skiss handstil (Kalam)',
+      casual: 'Ren handstil (Patrick Hand)',
+    };
     const updated = addVersionSnapshot(
       {
         ...note,
@@ -519,7 +571,30 @@ export const PostItCard: React.FC<PostItCardProps> = ({
         updatedAt: Date.now(),
       },
       'font',
-      `Typsnitt ändrat till ${nextFont === 'handwriting' ? 'Handskriven' : 'Standard'}`
+      `Typsnitt ändrat till ${fontNames[nextFont]}`
+    );
+    onUpdate(updated, true);
+  };
+
+  // Toggle paper pattern (Plain -> Ruled lines -> Grid -> Dot grid)
+  const handleCyclePaperStyle = () => {
+    const cycleOrder: NotePaperStyle[] = ['plain', 'lined', 'grid', 'dots'];
+    const currentIdx = cycleOrder.indexOf(note.paperStyle || 'plain');
+    const nextStyle = cycleOrder[(currentIdx + 1) % cycleOrder.length] || 'plain';
+    const styleNames: Record<NotePaperStyle, string> = {
+      plain: 'Rent papper',
+      lined: 'Linjerat papper',
+      grid: 'Rutigt papper',
+      dots: 'Prickat papper (Dot grid)',
+    };
+    const updated = addVersionSnapshot(
+      {
+        ...note,
+        paperStyle: nextStyle,
+        updatedAt: Date.now(),
+      },
+      'color',
+      `Pappersstil ändrad till ${styleNames[nextStyle]}`
     );
     onUpdate(updated, true);
   };
@@ -577,10 +652,26 @@ export const PostItCard: React.FC<PostItCardProps> = ({
     onUpdate(updated, true);
   };
 
-  // Toggle sketch mode
+  // Toggle sketch mode with ergonomic dimension expansion for Apple Pencil drawing
   const handleToggleSketchMode = () => {
-    setIsSketchMode((prev) => !prev);
+    const nextState = !isSketchMode;
+    setIsSketchMode(nextState);
     onBringToFront(note.id);
+    if (nextState) {
+      const minSketchH = 320;
+      const minSketchW = 300;
+      if (note.height < minSketchH || note.width < minSketchW) {
+        onUpdate(
+          {
+            ...note,
+            width: Math.max(note.width, minSketchW),
+            height: Math.max(note.height, minSketchH),
+            updatedAt: Date.now(),
+          },
+          false
+        );
+      }
+    }
   };
 
   // Save freehand drawing data
@@ -602,16 +693,26 @@ export const PostItCard: React.FC<PostItCardProps> = ({
     setIsSketchMode(false);
   };
 
-  const fontClass =
-    note.fontFamily === 'handwriting'
-      ? 'font-handwriting tracking-wide'
-      : 'font-sans-clean font-medium';
+  const fontClass = {
+    sans: 'font-sans-clean font-medium',
+    handwriting: 'font-handwriting tracking-wide',
+    kalam: 'font-kalam tracking-wide',
+    casual: 'font-casual tracking-normal',
+  }[note.fontFamily || 'sans'];
 
+  const isCursive = note.fontFamily && note.fontFamily !== 'sans';
   const fontSizeClass = {
-    sm: note.fontFamily === 'handwriting' ? 'text-lg leading-snug' : 'text-sm leading-relaxed',
-    base: note.fontFamily === 'handwriting' ? 'text-2xl leading-normal' : 'text-base leading-relaxed',
-    lg: note.fontFamily === 'handwriting' ? 'text-3xl leading-normal' : 'text-lg leading-relaxed',
+    sm: isCursive ? 'text-lg leading-snug' : 'text-sm leading-relaxed',
+    base: isCursive ? 'text-2xl leading-normal' : 'text-base leading-relaxed',
+    lg: isCursive ? 'text-3xl leading-normal' : 'text-lg leading-relaxed',
   }[note.fontSize || 'base'];
+
+  const paperPatternClass = {
+    plain: '',
+    lined: 'paper-pattern-lines',
+    grid: 'paper-pattern-grid',
+    dots: 'paper-pattern-dots',
+  }[note.paperStyle || 'plain'];
 
   // Dim note if search is active and this note is not a match
   const searchDimClass = isSearchActive && !isSearchMatch ? 'opacity-30 scale-98 pointer-events-none' : '';
@@ -800,7 +901,7 @@ export const PostItCard: React.FC<PostItCardProps> = ({
         onPointerDown={handleDragPointerDown}
         onPointerMove={handleDragPointerMove}
         onPointerUp={handleDragPointerUp}
-        className="touch-drag-area flex-1 flex flex-col px-3 py-1.5 min-h-0 relative overflow-hidden w-full"
+        className={`touch-drag-area flex-1 flex flex-col px-3 py-1.5 min-h-0 relative overflow-hidden w-full ${paperPatternClass}`}
       >
         {/* Attached Camera Photo with full sizing, rotation, fit, filters and touch resizing */}
         {note.imageUrl && (
@@ -907,10 +1008,24 @@ export const PostItCard: React.FC<PostItCardProps> = ({
             type="button"
             onClick={handleToggleFont}
             className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-black/10 active:scale-95 transition-all opacity-75 hover:opacity-100 text-[11px] font-bold"
-            title={note.fontFamily === 'handwriting' ? 'Byt till rak standardfont' : 'Byt till handskriven stil'}
+            title={`Typsnitt: ${note.fontFamily === 'handwriting' ? 'Handskrift (Caveat)' : note.fontFamily === 'kalam' ? 'Skiss handstil (Kalam)' : note.fontFamily === 'casual' ? 'Ren handstil (Patrick Hand)' : 'Standard (Sans)'} - Klicka för att byta`}
             aria-label="Byt typsnitt"
           >
             <Type className="h-3.5 w-3.5" />
+          </button>
+
+          {/* Paper style pattern toggle */}
+          <button
+            id={`btn-paper-style-${note.id}`}
+            type="button"
+            onClick={handleCyclePaperStyle}
+            className={`flex h-7 w-7 items-center justify-center rounded-md hover:bg-black/10 active:scale-95 transition-all ${
+              note.paperStyle && note.paperStyle !== 'plain' ? 'bg-black/10 text-slate-900 font-bold' : 'opacity-75 hover:opacity-100'
+            }`}
+            title={`Pappersmönster: ${note.paperStyle === 'lined' ? 'Linjerat' : note.paperStyle === 'grid' ? 'Rutigt' : note.paperStyle === 'dots' ? 'Prickat' : 'Rent papper'} - Klicka för att byta`}
+            aria-label="Byt pappersstil"
+          >
+            <Grid className="h-3.5 w-3.5" />
           </button>
 
           {/* Font size toggle */}

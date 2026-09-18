@@ -1,10 +1,126 @@
 export type PostItColor = 'yellow' | 'pink' | 'blue' | 'green' | 'orange' | 'purple';
 
-export type DeskTheme = 'light' | 'dark' | 'cork';
+export type DeskTheme =
+  | 'light'
+  | 'dark'
+  | 'cork'
+  | 'wood'
+  | 'dark-wood'
+  | 'paper'
+  | 'blueprint';
 
-export type FontFamilyType = 'handwriting' | 'sans';
+export interface DeskThemeConfig {
+  id: DeskTheme;
+  name: string;
+  category: 'grid' | 'texture' | 'minimalist';
+  description: string;
+  icon: string;
+  bgClass: string;
+  swatchGradient: string;
+  isDark: boolean;
+}
+
+export const DESK_THEMES: Record<DeskTheme, DeskThemeConfig> = {
+  light: {
+    id: 'light',
+    name: 'Ljust rutnät',
+    category: 'grid',
+    description: 'Rent skrivbord med diskreta prickar',
+    icon: '☀️',
+    bgClass: 'desk-grid-light',
+    swatchGradient: 'bg-slate-100 border-slate-300',
+    isDark: false,
+  },
+  dark: {
+    id: 'dark',
+    name: 'Mörkt rutnät',
+    category: 'grid',
+    description: 'Dämpat mörkt skrivbord för kvällsarbete',
+    icon: '🌙',
+    bgClass: 'desk-grid-dark',
+    swatchGradient: 'bg-slate-900 border-slate-700',
+    isDark: true,
+  },
+  cork: {
+    id: 'cork',
+    name: 'Korktavla',
+    category: 'texture',
+    description: 'Klassisk anslagstavla med varm korkstruktur',
+    icon: '📌',
+    bgClass: 'desk-cork',
+    swatchGradient: 'bg-[#d2a679] border-[#b88c5e]',
+    isDark: false,
+  },
+  wood: {
+    id: 'wood',
+    name: 'Ek / Ljust trä',
+    category: 'texture',
+    description: 'Varmt träskrivbord med levande träådring',
+    icon: '🪵',
+    bgClass: 'desk-wood',
+    swatchGradient: 'bg-[#c49a6c] border-[#a87f52]',
+    isDark: false,
+  },
+  'dark-wood': {
+    id: 'dark-wood',
+    name: 'Mörk valnöt',
+    category: 'texture',
+    description: 'Exklusiv mörk valnöt med djup ton',
+    icon: '🌲',
+    bgClass: 'desk-dark-wood',
+    swatchGradient: 'bg-[#2b1d16] border-[#442c22]',
+    isDark: true,
+  },
+  paper: {
+    id: 'paper',
+    name: 'Minimalistiskt papper',
+    category: 'minimalist',
+    description: 'Taktilt premiumpapper med mjuk fiberstruktur',
+    icon: '📜',
+    bgClass: 'desk-paper',
+    swatchGradient: 'bg-[#f7f4ec] border-[#e2dcce]',
+    isDark: false,
+  },
+  blueprint: {
+    id: 'blueprint',
+    name: 'Teknisk ritning / Blueprint',
+    category: 'grid',
+    description: 'Arkitektritningsbord i teknisk djupblå',
+    icon: '📐',
+    bgClass: 'desk-blueprint',
+    swatchGradient: 'bg-[#1a365d] border-[#2a4d7d]',
+    isDark: true,
+  },
+};
+
+export type FontFamilyType = 'handwriting' | 'kalam' | 'casual' | 'sans';
 
 export type FontSizeType = 'sm' | 'base' | 'lg';
+
+export type NotePaperStyle = 'plain' | 'lined' | 'grid' | 'dots';
+
+export type PressureCurveType = 'soft' | 'balanced' | 'firm' | 'fixed';
+export type SmoothingLevelType = 'off' | 'smooth' | 'studio';
+
+export interface StylusCalibrationSettings {
+  pressureCurve: PressureCurveType; // 'soft' | 'balanced' | 'firm' | 'fixed'
+  smoothing: SmoothingLevelType; // 'off' | 'smooth' | 'studio'
+  streamlineTension: number; // 0.0 to 1.0
+  pressureSensitivity: number; // 0.5 to 2.0 (default 1.0)
+  nibFriction: number; // 0 to 1 (pen drag resistance)
+  palmRejection: boolean;
+  snapShapes: boolean;
+}
+
+export const DEFAULT_STYLUS_CALIBRATION: StylusCalibrationSettings = {
+  pressureCurve: 'balanced',
+  smoothing: 'smooth',
+  streamlineTension: 0.45,
+  pressureSensitivity: 1.0,
+  nibFriction: 0.15,
+  palmRejection: true,
+  snapShapes: true,
+};
 
 export type ImageFitMode = 'cover' | 'contain' | 'auto';
 
@@ -37,6 +153,7 @@ export interface NoteVersion {
   imageUrl?: string;
   imageConfig?: NoteImageConfig;
   fontFamily?: FontFamilyType;
+  paperStyle?: NotePaperStyle;
   fontSize?: FontSizeType;
   changeType?: NoteChangeType;
   summary?: string;
@@ -55,6 +172,7 @@ export interface PostItNote {
   isPinned: boolean;
   zIndex: number;
   fontFamily: FontFamilyType;
+  paperStyle?: NotePaperStyle;
   fontSize: FontSizeType;
   drawingData?: string; // Base64 PNG data URL of Apple Pencil / touch freehand sketch
   isSketchMode?: boolean; // Whether pencil sketch mode is currently open for this note

@@ -3,6 +3,7 @@ import {
   PostItColor,
   COLOR_CONFIGS,
   DeskTheme,
+  DESK_THEMES,
   PostItNote,
 } from '../types';
 import {
@@ -26,6 +27,8 @@ import {
   HelpCircle,
   Trash2,
   MoreHorizontal,
+  Check,
+  Palette,
 } from 'lucide-react';
 import { parseImportedNotes } from '../utils/storage';
 
@@ -53,6 +56,7 @@ interface ToolbarProps {
   theme: DeskTheme;
   onToggleTheme: (theme: DeskTheme) => void;
   onExport: () => void;
+  onOpenExportModal?: () => void;
   onImportNotes?: (notes: PostItNote[]) => void;
   isAutoSaved: boolean;
 }
@@ -81,18 +85,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   theme,
   onToggleTheme,
   onExport,
+  onOpenExportModal,
   onImportNotes,
   isAutoSaved,
 }) => {
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showStackMenu, setShowStackMenu] = useState(false);
   const [showColorMenu, setShowColorMenu] = useState(false);
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [lastStackMode, setLastStackMode] = useState<'center' | 'corner' | 'fan'>('center');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const stackMenuRef = useRef<HTMLDivElement>(null);
   const colorMenuRef = useRef<HTMLDivElement>(null);
+  const themeMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
   // Close menus on outside click
@@ -104,6 +111,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       }
       if (colorMenuRef.current && !colorMenuRef.current.contains(target)) {
         setShowColorMenu(false);
+      }
+      if (themeMenuRef.current && !themeMenuRef.current.contains(target)) {
+        setShowThemeMenu(false);
       }
       if (moreMenuRef.current && !moreMenuRef.current.contains(target)) {
         setShowMoreMenu(false);
@@ -383,28 +393,98 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </div>
 
             {/* Theme Desk Mode Picker */}
-            <button
-              id="btn-toggle-theme"
-              type="button"
-              onClick={() => {
-                const nextTheme: DeskTheme =
-                  theme === 'light' ? 'dark' : theme === 'dark' ? 'cork' : 'light';
-                onToggleTheme(nextTheme);
-              }}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 dark:border-zinc-800 text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 active:scale-95 transition-all shadow-2xs"
-              title={`Skrivbordstema: ${
-                theme === 'light' ? 'Ljust rutnät' : theme === 'dark' ? 'Mörkt rutnät' : 'Korktavla'
-              }`}
-              aria-label="Växla tema"
-            >
-              {theme === 'light' ? (
-                <Sun className="h-4 w-4 text-amber-500" />
-              ) : theme === 'dark' ? (
-                <Moon className="h-4 w-4 text-sky-400" />
-              ) : (
-                <Layers className="h-4 w-4 text-amber-700" />
+            <div ref={themeMenuRef} className="relative flex items-center">
+              <button
+                id="btn-toggle-theme"
+                type="button"
+                onClick={() => setShowThemeMenu((prev) => !prev)}
+                className={`flex h-9 items-center gap-1.5 px-2.5 rounded-xl border border-slate-200/80 dark:border-zinc-800 text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 active:scale-95 transition-all shadow-2xs ${
+                  showThemeMenu ? 'bg-slate-100 dark:bg-zinc-800 ring-2 ring-amber-400/40' : ''
+                }`}
+                title={`Skrivbordsbakgrund: ${DESK_THEMES[theme]?.name || 'Tema'}`}
+                aria-label="Välj skrivbordsbakgrund"
+                aria-expanded={showThemeMenu}
+              >
+                {theme === 'light' ? (
+                  <Sun className="h-4 w-4 text-amber-500" />
+                ) : theme === 'dark' ? (
+                  <Moon className="h-4 w-4 text-sky-400" />
+                ) : theme === 'cork' ? (
+                  <span className="text-xs">📌</span>
+                ) : theme === 'wood' ? (
+                  <span className="text-xs">🪵</span>
+                ) : theme === 'dark-wood' ? (
+                  <span className="text-xs">🌲</span>
+                ) : theme === 'paper' ? (
+                  <span className="text-xs">📜</span>
+                ) : (
+                  <span className="text-xs">📐</span>
+                )}
+                <span className="hidden xl:inline text-xs font-semibold text-slate-700 dark:text-zinc-200">
+                  {DESK_THEMES[theme]?.name.split('/')[0].trim()}
+                </span>
+                <ChevronDown className="h-3 w-3 text-slate-400 dark:text-zinc-500" />
+              </button>
+
+              {showThemeMenu && (
+                <div
+                  id="menu-theme-options"
+                  className="absolute right-0 top-11 z-50 w-72 max-h-[85vh] overflow-y-auto rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md p-2 shadow-2xl space-y-1 animate-in fade-in zoom-in-95 duration-100"
+                >
+                  <div className="px-2.5 py-1.5 border-b border-slate-100 dark:border-zinc-800 mb-1">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-400">
+                      Skrivbordsbakgrund
+                    </div>
+                    <div className="text-[10px] text-slate-500 dark:text-zinc-400">
+                      Välj textur och material för ditt digitala skrivbord
+                    </div>
+                  </div>
+
+                  {(Object.keys(DESK_THEMES) as DeskTheme[]).map((themeKey) => {
+                    const themeItem = DESK_THEMES[themeKey];
+                    const isSelected = theme === themeKey;
+
+                    return (
+                      <button
+                        key={themeKey}
+                        type="button"
+                        id={`btn-theme-${themeKey}`}
+                        onClick={() => {
+                          onToggleTheme(themeKey);
+                          setShowThemeMenu(false);
+                        }}
+                        className={`flex w-full items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all ${
+                          isSelected
+                            ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-950 dark:text-amber-200 ring-1 ring-amber-400/50'
+                            : 'text-slate-700 dark:text-zinc-200 hover:bg-slate-100/80 dark:hover:bg-zinc-800/80'
+                        }`}
+                      >
+                        {/* Mini Texture Preview Swatch */}
+                        <div
+                          className={`h-8 w-8 rounded-lg ${themeItem.bgClass} border border-black/10 dark:border-white/15 shadow-inner flex items-center justify-center text-xs shrink-0`}
+                        >
+                          <span>{themeItem.icon}</span>
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-semibold text-xs text-slate-900 dark:text-white truncate">
+                              {themeItem.name}
+                            </span>
+                            {isSelected && (
+                              <Check className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-500 dark:text-zinc-400 truncate">
+                            {themeItem.description}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               )}
-            </button>
+            </div>
 
             {/* Papperskorg / Trash Button */}
             <button
@@ -445,6 +525,23 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                   id="menu-more-options"
                   className="absolute right-0 top-11 z-50 w-52 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-2 shadow-2xl space-y-1 animate-in fade-in zoom-in-95 duration-100"
                 >
+                  <button
+                    type="button"
+                    id="btn-export-image-view"
+                    onClick={() => {
+                      if (onOpenExportModal) {
+                        onOpenExportModal();
+                      } else {
+                        onExport();
+                      }
+                      setShowMoreMenu(false);
+                    }}
+                    className="flex w-full items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    <Download className="h-4 w-4 text-amber-500" />
+                    <span>Exportera bild / backup</span>
+                  </button>
+
                   <button
                     type="button"
                     id="btn-export-backup"
@@ -679,9 +776,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-zinc-800/50">
                 <span className="text-xl">✏️</span>
                 <div>
-                  <p className="font-semibold text-slate-900 dark:text-white">Apple Pencil & Stylus Stöd</p>
+                  <p className="font-semibold text-slate-900 dark:text-white">Apple Pencil & Skissmod Pro</p>
                   <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-                    Tryck på penn-ikonen i lappens rubrik för att rita frihand. Appen har inbyggd handflatsavvisning (palm rejection) och stödjer pennstreck med justerbar tjocklek och färg.
+                    Tryck på pennan i lappen för att öppna skiss-paletten. Innehåller 5 verktyg (Fineliner, Blyerts med tryck & lutningsskuggning, Kalligrafi, Överstrykare och Suddgummi), 120Hz ProMotion-precision, smarta linjer/former (håll kvar i slutet av ett streck för att snäppa till en rak linje), handflatsavvisning (palm rejection) och pappersguider (prickat/rutigt/linjerat).
                   </p>
                 </div>
               </div>

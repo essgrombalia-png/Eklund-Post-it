@@ -4,6 +4,7 @@ import {
   TrashNote,
   PostItColor,
   DeskTheme,
+  DESK_THEMES,
   DEFAULT_NOTE_WIDTH,
   DEFAULT_NOTE_HEIGHT,
 } from './types';
@@ -21,6 +22,7 @@ import { Toolbar } from './components/Toolbar';
 import { Canvas } from './components/Canvas';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { TrashModal } from './components/TrashModal';
+import { ExportBoardModal } from './components/ExportBoardModal';
 import { Toast, ToastMessage } from './components/Toast';
 
 export default function App() {
@@ -36,6 +38,7 @@ export default function App() {
 
   const [trashNotes, setTrashNotes] = useState<TrashNote[]>(loadTrashFromStorage);
   const [isTrashOpen, setIsTrashOpen] = useState<boolean>(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
   const [theme, setTheme] = useState<DeskTheme>(loadThemeFromStorage);
   const [zoom, setZoom] = useState<number>(1);
   const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -54,7 +57,8 @@ export default function App() {
 
   // Sync dark class with document element
   useEffect(() => {
-    if (theme === 'dark') {
+    const isDark = DESK_THEMES[theme]?.isDark ?? (theme === 'dark');
+    if (isDark) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
@@ -632,6 +636,7 @@ export default function App() {
         theme={theme}
         onToggleTheme={setTheme}
         onExport={() => exportNotesToJson(notes)}
+        onOpenExportModal={() => setIsExportModalOpen(true)}
         onImportNotes={handleImportNotes}
         isAutoSaved={isAutoSaved}
       />
@@ -656,6 +661,16 @@ export default function App() {
         onAddNote={(color) => handleAddNote(color)}
         onFocusNote={handleFocusNote}
         onClearFocus={handleClearFocus}
+      />
+
+      {/* Export Board Image / Backup Modal */}
+      <ExportBoardModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        notes={notes}
+        theme={theme}
+        zoom={zoom}
+        panOffset={panOffset}
       />
 
       {/* Delete Confirmation Modal */}
