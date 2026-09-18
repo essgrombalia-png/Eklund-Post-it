@@ -25,11 +25,13 @@ import {
   Camera,
   History,
   Grid,
+  Maximize2,
 } from 'lucide-react';
 import { NoteSketchCanvas } from './NoteSketchCanvas';
 import { CameraModal } from './CameraModal';
 import { NoteImagePreview } from './NoteImagePreview';
 import { NoteHistoryModal } from './NoteHistoryModal';
+import { PostItSizeModal } from './PostItSizeModal';
 import { addVersionSnapshot } from '../utils/versionHistory';
 
 interface PostItCardProps {
@@ -66,6 +68,7 @@ export const PostItCard: React.FC<PostItCardProps> = ({
   const [isSketchMode, setIsSketchMode] = useState<boolean>(Boolean(note.isSketchMode));
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showSizeModal, setShowSizeModal] = useState(false);
 
   // Sync isSketchMode if note prop changes
   useEffect(() => {
@@ -109,7 +112,12 @@ export const PostItCard: React.FC<PostItCardProps> = ({
 
   // Track latest coordinates and dimensions across rapid drag/resize events
   const currentDragPosRef = useRef({ x: note.x, y: note.y });
-  const currentResizeDimsRef = useRef({ width: note.width, height: note.height });
+  const currentResizeDimsRef = useRef({
+    x: note.x,
+    y: note.y,
+    width: note.width,
+    height: note.height,
+  });
 
   useEffect(() => {
     if (!isDragging) {
@@ -119,17 +127,25 @@ export const PostItCard: React.FC<PostItCardProps> = ({
 
   useEffect(() => {
     if (!isResizing) {
-      currentResizeDimsRef.current = { width: note.width, height: note.height };
+      currentResizeDimsRef.current = {
+        x: note.x,
+        y: note.y,
+        width: note.width,
+        height: note.height,
+      };
     }
-  }, [note.width, note.height, isResizing]);
+  }, [note.x, note.y, note.width, note.height, isResizing]);
 
-  // Resize tracking refs
+  // Resize tracking refs (8-way directional resize)
   const resizeStartRef = useRef<{
     pointerId: number;
     startX: number;
     startY: number;
+    initialX: number;
+    initialY: number;
     initialWidth: number;
     initialHeight: number;
+    handle: 'se' | 'e' | 's' | 'w' | 'n' | 'sw' | 'ne' | 'nw';
   } | null>(null);
 
   const cardRef = useRef<HTMLDivElement>(null);
@@ -372,6 +388,24 @@ export const PostItCard: React.FC<PostItCardProps> = ({
       return;
     }
 
+    // Apple Pencil direct inking refinement for iPad Pro:
+    if (e.pointerType === 'pen') {
+      const isHeader = Boolean(target.closest(`#postit-header-${note.id}`));
+      if (!isHeader) {
+        // Direct Apple Pencil touch on note body activates sketch mode instantly
+        e.preventDefault();
+        e.stopPropagation();
+        setIsSketchMode(true);
+        onUpdate({ ...note, isSketchMode: true }, false);
+        return;
+      }
+    }
+
+    // Palm rejection on note drag (filter fleshy palm contact)
+    if (e.pointerType === 'touch' && ((e.width && e.width > 26) || (e.height && e.height > 26))) {
+      return;
+    }
+
     // Detect double tap on iPad Pro touch or double click
     const now = Date.now();
     const timeDiff = now - noteLastTapRef.current.time;
@@ -453,8 +487,11 @@ export const PostItCard: React.FC<PostItCardProps> = ({
     );
   };
 
-  // Corner Resize pointer handlers
-  const handleResizePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  // Edge & Corner Resize pointer handlers (Full 8-way directional sizing)
+  const handleResizePointerDown = (
+    e: React.PointerEvent<HTMLDivElement>,
+    handle: 'se' | 'e' | 's' | 'w' | 'n' | 'sw' | 'ne' | 'nw' = 'se'
+  ) => {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
 
     onBringToFront(note.id);
@@ -471,8 +508,11 @@ export const PostItCard: React.FC<PostItCardProps> = ({
       pointerId: e.pointerId,
       startX: e.clientX,
       startY: e.clientY,
+      initialX: note.x,
+      initialY: note.y,
       initialWidth: note.width,
       initialHeight: note.height,
+      handle,
     };
 
     setIsResizing(true);
@@ -486,20 +526,38 @@ export const PostItCard: React.FC<PostItCardProps> = ({
 
     const dx = (e.clientX - resizeStartRef.current.startX) / zoom;
     const dy = (e.clientY - resizeStartRef.current.startY) / zoom;
+    const { initialX, initialY, initialWidth, initialHeight, handle } = resizeStartRef.current;
 
-    const newWidth = Math.min(
-      MAX_NOTE_WIDTH,
-      Math.max(MIN_NOTE_WIDTH, Math.round(resizeStartRef.current.initialWidth + dx))
-    );
-    const newHeight = Math.min(
-      MAX_NOTE_HEIGHT,
-      Math.max(MIN_NOTE_HEIGHT, Math.round(resizeStartRef.current.initialHeight + dy))
-    );
-    currentResizeDimsRef.current = { width: newWidth, height: newHeight };
+    let newWidth = initialWidth;
+    let newHeight = initialHeight;
+    let newX = initialX;
+    let newY = initialY;
+
+    if (handle.includes('e')) {
+      newWidth = Math.min(MAX_NOTE_WIDTH, Math.max(MIN_NOTE_WIDTH, Math.round(initialWidth + dx)));
+    } else if (handle.includes('w')) {
+      const targetW = Math.round(initialWidth - dx);
+      const clampedW = Math.min(MAX_NOTE_WIDTH, Math.max(MIN_NOTE_WIDTH, targetW));
+      newWidth = clampedW;
+      newX = initialX + (initialWidth - clampedW);
+    }
+
+    if (handle.includes('s')) {
+      newHeight = Math.min(MAX_NOTE_HEIGHT, Math.max(MIN_NOTE_HEIGHT, Math.round(initialHeight + dy)));
+    } else if (handle.includes('n')) {
+      const targetH = Math.round(initialHeight - dy);
+      const clampedH = Math.min(MAX_NOTE_HEIGHT, Math.max(MIN_NOTE_HEIGHT, targetH));
+      newHeight = clampedH;
+      newY = initialY + (initialHeight - clampedH);
+    }
+
+    currentResizeDimsRef.current = { x: newX, y: newY, width: newWidth, height: newHeight };
 
     onUpdate(
       {
         ...note,
+        x: newX,
+        y: newY,
         width: newWidth,
         height: newHeight,
       },
@@ -519,14 +577,35 @@ export const PostItCard: React.FC<PostItCardProps> = ({
 
     setIsResizing(false);
     resizeStartRef.current = null;
-    onUpdate(
+    const finalState = currentResizeDimsRef.current;
+    const updated = addVersionSnapshot(
       {
         ...note,
-        width: currentResizeDimsRef.current.width,
-        height: currentResizeDimsRef.current.height,
+        x: finalState.x,
+        y: finalState.y,
+        width: finalState.width,
+        height: finalState.height,
+        updatedAt: Date.now(),
       },
-      true
+      'content_edit',
+      `Storlek anpassad till ${finalState.width}×${finalState.height}px`
     );
+    onUpdate(updated, true);
+  };
+
+  // Direct custom size application (from Format & Storlek Modal)
+  const handleApplyCustomSize = (newWidth: number, newHeight: number) => {
+    const updated = addVersionSnapshot(
+      {
+        ...note,
+        width: newWidth,
+        height: newHeight,
+        updatedAt: Date.now(),
+      },
+      'content_edit',
+      `Storlek ändrad till ${newWidth}×${newHeight}px`
+    );
+    onUpdate(updated, true);
   };
 
   // Handle color change
@@ -974,6 +1053,10 @@ export const PostItCard: React.FC<PostItCardProps> = ({
             isSketchMode={isSketchMode}
             onSaveDrawing={handleSaveDrawing}
             onCloseSketchMode={handleCloseSketchMode}
+            onActivateSketchMode={() => {
+              setIsSketchMode(true);
+              onUpdate({ ...note, isSketchMode: true }, false);
+            }}
           />
         )}
       </div>
@@ -1092,31 +1175,129 @@ export const PostItCard: React.FC<PostItCardProps> = ({
               e.stopPropagation();
               setShowHistoryModal(true);
             }}
-            className="text-[10px] opacity-60 hover:opacity-100 font-mono truncate max-w-[60px] sm:max-w-[75px] hover:underline cursor-pointer flex items-center gap-0.5"
+            className="text-[10px] opacity-60 hover:opacity-100 font-mono truncate max-w-[55px] sm:max-w-[70px] hover:underline cursor-pointer flex items-center gap-0.5"
             title={`Senast ändrad: ${new Date(note.updatedAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })} - Klicka för ändringshistorik`}
           >
             <Clock className="h-2.5 w-2.5 shrink-0" />
             <span className="truncate">{formatTimestamp(note.updatedAt)}</span>
           </button>
 
-          {/* Corner Resize Handle */}
+          {/* Size & Dimensions Quick Button */}
+          <button
+            type="button"
+            id={`btn-size-modal-${note.id}`}
+            data-no-drag="true"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowSizeModal(true);
+            }}
+            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md hover:bg-black/10 active:scale-95 transition-all text-[10px] font-mono opacity-70 hover:opacity-100 font-semibold cursor-pointer shrink-0"
+            title={`Storlek: ${note.width} × ${note.height} px - Klicka för format, sliders & full storlekskontroll`}
+            aria-label="Storlekskontroll"
+          >
+            <Maximize2 className="h-2.5 w-2.5 shrink-0" />
+            <span>{note.width}×{note.height}</span>
+          </button>
+
+          {/* Primary Corner Resize Handle (Bottom-Right) */}
           <div
             id={`postit-resize-handle-${note.id}`}
             data-no-drag="true"
-            onPointerDown={handleResizePointerDown}
+            onPointerDown={(e) => handleResizePointerDown(e, 'se')}
             onPointerMove={handleResizePointerMove}
             onPointerUp={handleResizePointerUp}
-            className="touch-drag-area -mr-1 flex h-7 w-7 items-center justify-center cursor-se-resize active:scale-110 transition-transform opacity-40 hover:opacity-80 shrink-0"
-            title="Dra för att ändra storlek"
+            className="touch-drag-area -mr-1 flex h-7 w-7 items-center justify-center cursor-nwse-resize active:scale-110 transition-transform opacity-40 hover:opacity-90 hover:text-amber-800 dark:hover:text-amber-300 shrink-0 z-30"
+            title="Dra i hörnet för att ändra storlek"
             aria-label="Ändra storlek"
           >
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-              <line x1="9" y1="1" x2="1" y2="9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              <line x1="9" y1="5" x2="5" y2="9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="9" y1="1" x2="1" y2="9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="9" y1="5" x2="5" y2="9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
             </svg>
           </div>
         </div>
       </div>
+
+      {/* 8-Way Edge & Corner Resizing Zones for Full Interactive Size Control */}
+      {/* Right Edge (Width) */}
+      <div
+        id={`postit-resize-e-${note.id}`}
+        data-no-drag="true"
+        onPointerDown={(e) => handleResizePointerDown(e, 'e')}
+        onPointerMove={handleResizePointerMove}
+        onPointerUp={handleResizePointerUp}
+        className="absolute top-6 right-0 bottom-6 w-2.5 cursor-ew-resize hover:bg-black/10 transition-colors z-20"
+        title="Dra för att ändra bredd"
+      />
+      {/* Bottom Edge (Height) */}
+      <div
+        id={`postit-resize-s-${note.id}`}
+        data-no-drag="true"
+        onPointerDown={(e) => handleResizePointerDown(e, 's')}
+        onPointerMove={handleResizePointerMove}
+        onPointerUp={handleResizePointerUp}
+        className="absolute bottom-0 left-6 right-8 h-2.5 cursor-ns-resize hover:bg-black/10 transition-colors z-20"
+        title="Dra för att ändra höjd"
+      />
+      {/* Left Edge (Width from Left) */}
+      <div
+        id={`postit-resize-w-${note.id}`}
+        data-no-drag="true"
+        onPointerDown={(e) => handleResizePointerDown(e, 'w')}
+        onPointerMove={handleResizePointerMove}
+        onPointerUp={handleResizePointerUp}
+        className="absolute top-6 left-0 bottom-6 w-2.5 cursor-ew-resize hover:bg-black/10 transition-colors z-20"
+        title="Dra för att ändra bredd från vänster"
+      />
+      {/* Top Edge (Height from Top) */}
+      <div
+        id={`postit-resize-n-${note.id}`}
+        data-no-drag="true"
+        onPointerDown={(e) => handleResizePointerDown(e, 'n')}
+        onPointerMove={handleResizePointerMove}
+        onPointerUp={handleResizePointerUp}
+        className="absolute top-0 left-8 right-8 h-1.5 cursor-ns-resize hover:bg-black/10 transition-colors z-20"
+        title="Dra för att ändra höjd från toppen"
+      />
+      {/* Bottom-Left Corner */}
+      <div
+        id={`postit-resize-sw-${note.id}`}
+        data-no-drag="true"
+        onPointerDown={(e) => handleResizePointerDown(e, 'sw')}
+        onPointerMove={handleResizePointerMove}
+        onPointerUp={handleResizePointerUp}
+        className="absolute bottom-0 left-0 w-5 h-5 cursor-nesw-resize hover:bg-black/10 rounded-bl-2xl transition-colors z-20"
+        title="Dra för att ändra storlek"
+      />
+      {/* Top-Right Corner */}
+      <div
+        id={`postit-resize-ne-${note.id}`}
+        data-no-drag="true"
+        onPointerDown={(e) => handleResizePointerDown(e, 'ne')}
+        onPointerMove={handleResizePointerMove}
+        onPointerUp={handleResizePointerUp}
+        className="absolute top-0 right-0 w-4 h-4 cursor-nesw-resize hover:bg-black/10 rounded-tr-2xl transition-colors z-20"
+        title="Dra för att ändra storlek"
+      />
+      {/* Top-Left Corner */}
+      <div
+        id={`postit-resize-nw-${note.id}`}
+        data-no-drag="true"
+        onPointerDown={(e) => handleResizePointerDown(e, 'nw')}
+        onPointerMove={handleResizePointerMove}
+        onPointerUp={handleResizePointerUp}
+        className="absolute top-0 left-0 w-4 h-4 cursor-nwse-resize hover:bg-black/10 rounded-tl-2xl transition-colors z-20"
+        title="Dra för att ändra storlek"
+      />
+
+      {/* Live Dimension HUD overlay during active resizing */}
+      {isResizing && (
+        <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-50 pointer-events-none px-3 py-1 rounded-full bg-slate-900/95 text-white text-xs font-mono font-bold shadow-2xl backdrop-blur-md flex items-center gap-1.5 border border-white/20 whitespace-nowrap animate-in fade-in zoom-in-95 duration-75">
+          <Maximize2 className="h-3.5 w-3.5 text-amber-400" />
+          <span>{note.width} × {note.height} px</span>
+          <span className="text-white/60 text-[10px]">({(note.width / note.height).toFixed(2)}:1)</span>
+        </div>
+      )}
 
       {/* Camera Capture Modal */}
       <CameraModal
@@ -1134,6 +1315,14 @@ export const PostItCard: React.FC<PostItCardProps> = ({
         onRestore={(restoredNote) => {
           onUpdate(restoredNote, true);
         }}
+      />
+
+      {/* Note Size & Dimensions Full Control Modal */}
+      <PostItSizeModal
+        note={note}
+        isOpen={showSizeModal}
+        onClose={() => setShowSizeModal(false)}
+        onApplySize={handleApplyCustomSize}
       />
     </div>
   );

@@ -33,6 +33,7 @@ interface NoteSketchCanvasProps {
   isSketchMode: boolean;
   onSaveDrawing: (dataUrl: string | undefined) => void;
   onCloseSketchMode: () => void;
+  onActivateSketchMode?: () => void;
 }
 
 export type SketchToolType = 'pen' | 'pencil' | 'fountain' | 'highlighter' | 'eraser';
@@ -44,6 +45,8 @@ interface StrokePoint {
   pressure: number;
   tiltX?: number;
   tiltY?: number;
+  altitudeAngle?: number;
+  azimuthAngle?: number;
   time: number;
 }
 
@@ -73,12 +76,14 @@ export const NoteSketchCanvas: React.FC<NoteSketchCanvasProps> = ({
   isSketchMode,
   onSaveDrawing,
   onCloseSketchMode,
+  onActivateSketchMode,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Tools & Styling
   const [activeTool, setActiveTool] = useState<SketchToolType>('pen');
+  const previousToolRef = useRef<SketchToolType>('pen');
   const [activeColor, setActiveColor] = useState<string>('#1e293b');
   const [strokeWidth, setStrokeWidth] = useState<number>(3);
   const [hasContent, setHasContent] = useState<boolean>(Boolean(drawingData));
@@ -88,6 +93,32 @@ export const NoteSketchCanvas: React.FC<NoteSketchCanvasProps> = ({
   const [isApplePencilDetected, setIsApplePencilDetected] = useState<boolean>(false);
   const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number; pressure?: number } | null>(null);
   const [showCalibrationModal, setShowCalibrationModal] = useState<boolean>(false);
+  const [gestureToast, setGestureToast] = useState<string | null>(null);
+  const gestureToastTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // iPad touch & Apple Pencil gesture tracking
+  const lastPencilTimeRef = useRef<number>(0);
+  const activeTouchPointsRef = useRef<Map<number, { startX: number; startY: number; startTime: number }>>(new Map());
+  const maxSketchTouchesRef = useRef<number>(0);
+
+  const showGestureToast = useCallback((msg: string) => {
+    setGestureToast(msg);
+    if (gestureToastTimerRef.current) clearTimeout(gestureToastTimerRef.current);
+    gestureToastTimerRef.current = setTimeout(() => setGestureToast(null), 1400);
+  }, []);
+
+  // Quick switch between active drawing tool and eraser (Apple Pencil 2 Double-Tap simulation)
+  const toggleEraser = useCallback(() => {
+    if (activeTool === 'eraser') {
+      const restore = previousToolRef.current === 'eraser' ? 'pen' : previousToolRef.current;
+      setActiveTool(restore);
+      showGestureToast(`Penna återställd (${restore}) ✏️`);
+    } else {
+      previousToolRef.current = activeTool;
+      setActiveTool('eraser');
+      showGestureToast('Suddgummi aktiv 🧹');
+    }
+  }, [activeTool, showGestureToast]);
 
   // Stylus calibration settings
   const [calibration, setCalibration] = useState<StylusCalibrationSettings>(() => {
@@ -293,7 +324,8 @@ export const NoteSketchCanvas: React.FC<NoteSketchCanvasProps> = ({
     dx: number = 0,
     dy: number = 0,
     tiltX: number = 0,
-    tiltY: number = 0
+    tiltY: number = 0,
+    altitudeAngle?: number
   ) => {
     // Apply calibrated pressure curve
     let normPressure = Math.max(0.1, Math.min(1.0, rawPressure));
@@ -319,7 +351,11 @@ export const NoteSketchCanvas: React.FC<NoteSketchCanvasProps> = ({
       case 'pencil': {
         // Graphite pencil: tilt sensitivity widens the stroke, pressure adds graphite density
         const tiltMagnitude = Math.hypot(tiltX, tiltY);
-        const tiltFactor = tiltMagnitude > 20 ? 1 + (tiltMagnitude - 20) / 40 : 1;
+        let tiltFactor = tiltMagnitude > 20 ? 1 + (tiltMagnitude - 20) / 40 : 1;
+        // Native Apple Pencil altitude angle on iPad (0 = flat on glass, PI/2 = vertical)
+        if (altitudeAngle !== undefined && altitudeAngle < 0.65) {
+          tiltFactor = Math.max(tiltFactor, 1 + (0.65 - altitudeAngle) * 2.4);
+        }
         const width = Math.max(1, baseWidth * (0.5 + Math.pow(normPressure, 1.2) * 0.9) * tiltFactor);
         const alpha = Math.min(0.9, Math.max(0.25, 0.4 + normPressure * 0.5));
         return {
@@ -348,7 +384,10 @@ export const NoteSketchCanvas: React.FC<NoteSketchCanvasProps> = ({
       }
       case 'highlighter': {
         // Semi-transparent luminous highlighter with broad flat line
-        const width = baseWidth * 3.8;
+        let width = baseWidth * 3.8;
+        if (altitudeAngle !== undefined && altitudeAngle < 0.65) {
+          width *= 1.35;
+        }
         return {
           width,
           color,
@@ -459,7 +498,8 @@ export const NoteSketchCanvas: React.FC<NoteSketchCanvasProps> = ({
       dx,
       dy,
       p2.tiltX,
-      p2.tiltY
+      p2.tiltY,
+      p2.altitudeAngle
     );
 
     ctx.save();
@@ -490,16 +530,50 @@ export const NoteSketchCanvas: React.FC<NoteSketchCanvasProps> = ({
 
   // Pointer Down (Apple Pencil, Touch, Mouse)
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!isSketchMode) return;
-
-    // Palm rejection
-    const isPalmRejectionActive = palmRejection && calibration.palmRejection;
-    if (isPalmRejectionActive && isApplePencilDetected && e.pointerType === 'touch') {
-      return;
+    // If touched with Apple Pencil and not yet in sketch mode, auto-activate if directPencilInking is on
+    if (!isSketchMode) {
+      if (e.pointerType === 'pen' && calibration.directPencilInking) {
+        onActivateSketchMode?.();
+      } else {
+        return;
+      }
     }
 
+    // iPad Palm rejection & multi-touch handling
     if (e.pointerType === 'pen') {
       setIsApplePencilDetected(true);
+      lastPencilTimeRef.current = Date.now();
+    } else if (e.pointerType === 'touch') {
+      activeTouchPointsRef.current.set(e.pointerId, {
+        startX: e.clientX,
+        startY: e.clientY,
+        startTime: Date.now(),
+      });
+      maxSketchTouchesRef.current = Math.max(
+        maxSketchTouchesRef.current,
+        activeTouchPointsRef.current.size
+      );
+
+      // Palm rejection: filter wide palm contacts
+      const isLargeContact = (e.width && e.width > 24) || (e.height && e.height > 24);
+      const isPalmRejectionActive = palmRejection && calibration.palmRejection;
+      if (isPalmRejectionActive && isLargeContact) {
+        return;
+      }
+
+      // If Apple Pencil was active recently, reject single-finger drawing strokes
+      if (
+        isPalmRejectionActive &&
+        isApplePencilDetected &&
+        Date.now() - lastPencilTimeRef.current < 2500
+      ) {
+        return;
+      }
+
+      // If user has 2 or more fingers down, don't ink — this is an undo/redo gesture
+      if (activeTouchPointsRef.current.size >= 2) {
+        return;
+      }
     }
 
     e.preventDefault();
@@ -529,6 +603,9 @@ export const NoteSketchCanvas: React.FC<NoteSketchCanvasProps> = ({
     const pressure = e.pressure && e.pressure > 0 ? e.pressure : e.pointerType === 'pen' ? 0.5 : 0.6;
     const tiltX = (e as any).tiltX || 0;
     const tiltY = (e as any).tiltY || 0;
+    const nativeEvt = e.nativeEvent as any;
+    const altitudeAngle = typeof nativeEvt?.altitudeAngle === 'number' ? nativeEvt.altitudeAngle : undefined;
+    const azimuthAngle = typeof nativeEvt?.azimuthAngle === 'number' ? nativeEvt.azimuthAngle : undefined;
 
     const startPoint: StrokePoint = {
       x,
@@ -536,6 +613,8 @@ export const NoteSketchCanvas: React.FC<NoteSketchCanvasProps> = ({
       pressure,
       tiltX,
       tiltY,
+      altitudeAngle,
+      azimuthAngle,
       time: Date.now(),
     };
 
@@ -544,7 +623,17 @@ export const NoteSketchCanvas: React.FC<NoteSketchCanvasProps> = ({
     lastDrawnIndexRef.current = 0;
 
     // Draw single dot on touch down
-    const props = getToolProperties(activeTool, pressure, strokeWidth, activeColor, 0, 0, tiltX, tiltY);
+    const props = getToolProperties(
+      activeTool,
+      pressure,
+      strokeWidth,
+      activeColor,
+      0,
+      0,
+      tiltX,
+      tiltY,
+      altitudeAngle
+    );
     ctx.save();
     ctx.globalCompositeOperation = props.composite;
     ctx.globalAlpha = props.alpha;
@@ -564,8 +653,8 @@ export const NoteSketchCanvas: React.FC<NoteSketchCanvasProps> = ({
     const currentX = e.clientX - rect.left;
     const currentY = e.clientY - rect.top;
 
-    // Update hover position for Apple Pencil Pro hover indicator
-    if (isSketchMode) {
+    // Update hover position for Apple Pencil hover indicator
+    if (isSketchMode && calibration.pencilHoverPreview) {
       setHoverPosition({
         x: currentX,
         y: currentY,
@@ -577,7 +666,16 @@ export const NoteSketchCanvas: React.FC<NoteSketchCanvasProps> = ({
 
     // Palm rejection check
     const isPalmRejectionActive = palmRejection && calibration.palmRejection;
-    if (isPalmRejectionActive && isApplePencilDetected && e.pointerType === 'touch') {
+    if (
+      isPalmRejectionActive &&
+      isApplePencilDetected &&
+      e.pointerType === 'touch' &&
+      Date.now() - lastPencilTimeRef.current < 2500
+    ) {
+      return;
+    }
+
+    if (e.pointerType === 'touch' && activeTouchPointsRef.current.size >= 2) {
       return;
     }
 
@@ -589,8 +687,19 @@ export const NoteSketchCanvas: React.FC<NoteSketchCanvasProps> = ({
 
     // Extract all coalesced events if supported (iPad ProMotion 120Hz)
     const nativeEvent = e.nativeEvent as any;
-    const events: Array<{ clientX: number; clientY: number; pressure?: number; tiltX?: number; tiltY?: number }> =
-      typeof nativeEvent?.getCoalescedEvents === 'function' && nativeEvent.getCoalescedEvents().length > 0
+    const use120Hz = calibration.proMotion120Hz;
+    const events: Array<{
+      clientX: number;
+      clientY: number;
+      pressure?: number;
+      tiltX?: number;
+      tiltY?: number;
+      altitudeAngle?: number;
+      azimuthAngle?: number;
+    }> =
+      use120Hz &&
+      typeof nativeEvent?.getCoalescedEvents === 'function' &&
+      nativeEvent.getCoalescedEvents().length > 0
         ? nativeEvent.getCoalescedEvents()
         : [e];
 
@@ -600,6 +709,8 @@ export const NoteSketchCanvas: React.FC<NoteSketchCanvasProps> = ({
       const pressure = evt.pressure && evt.pressure > 0 ? evt.pressure : e.pointerType === 'pen' ? 0.5 : 0.6;
       const tiltX = evt.tiltX || 0;
       const tiltY = evt.tiltY || 0;
+      const altitudeAngle = typeof evt.altitudeAngle === 'number' ? evt.altitudeAngle : undefined;
+      const azimuthAngle = typeof evt.azimuthAngle === 'number' ? evt.azimuthAngle : undefined;
 
       // Apply streamline smoothing filter
       let smoothedX = rawX;
@@ -620,6 +731,8 @@ export const NoteSketchCanvas: React.FC<NoteSketchCanvasProps> = ({
         pressure,
         tiltX,
         tiltY,
+        altitudeAngle,
+        azimuthAngle,
         time: Date.now(),
       };
 
@@ -659,6 +772,25 @@ export const NoteSketchCanvas: React.FC<NoteSketchCanvasProps> = ({
     if (shapeHoldTimerRef.current) {
       clearTimeout(shapeHoldTimerRef.current);
       shapeHoldTimerRef.current = null;
+    }
+
+    // Process touch gesture endings (2-finger tap = Undo, 3-finger tap = Redo)
+    if (e.pointerType === 'touch') {
+      activeTouchPointsRef.current.delete(e.pointerId);
+
+      if (activeTouchPointsRef.current.size === 0) {
+        const touchCount = maxSketchTouchesRef.current;
+        if (calibration.twoFingerUndo) {
+          if (touchCount === 2) {
+            handleUndo();
+            showGestureToast('Ångrade ändring (2 fingrar) ↩️');
+          } else if (touchCount === 3) {
+            handleRedo();
+            showGestureToast('Gjorde om ändring (3 fingrar) ↪️');
+          }
+        }
+        maxSketchTouchesRef.current = 0;
+      }
     }
 
     if (!isDrawingRef.current) return;
@@ -1021,8 +1153,15 @@ export const NoteSketchCanvas: React.FC<NoteSketchCanvasProps> = ({
         }`}
       />
 
+      {/* Floating iPad Pro Gesture Notification Badge */}
+      {gestureToast && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 pointer-events-none px-3.5 py-1.5 rounded-full bg-slate-900/90 text-white text-xs font-semibold shadow-xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150 flex items-center gap-1.5 border border-white/15">
+          <span>{gestureToast}</span>
+        </div>
+      )}
+
       {/* Live Apple Pencil Hover Cursor Indicator */}
-      {isSketchMode && hoverPosition && !isDrawingRef.current && (
+      {isSketchMode && calibration.pencilHoverPreview && hoverPosition && !isDrawingRef.current && (
         <div
           className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-black/40 shadow-xs transition-opacity duration-75"
           style={{

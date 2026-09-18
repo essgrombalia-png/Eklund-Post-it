@@ -4,6 +4,8 @@ import {
   DeskTheme,
   DEFAULT_NOTE_WIDTH,
   DEFAULT_NOTE_HEIGHT,
+  MIN_NOTE_WIDTH,
+  MIN_NOTE_HEIGHT,
   TRASH_RETENTION_MS,
   TRASH_RETENTION_DAYS,
 } from '../types';
@@ -44,8 +46,8 @@ export function loadNotesFromStorage(): PostItNote[] {
         if (userNotes.length > 0) {
           return userNotes.map((n: PostItNote) => ({
             ...n,
-            width: Math.max(n.width || DEFAULT_NOTE_WIDTH, 280),
-            height: Math.max(n.height || DEFAULT_NOTE_HEIGHT, 260),
+            width: Math.max(n.width || DEFAULT_NOTE_WIDTH, MIN_NOTE_WIDTH),
+            height: Math.max(n.height || DEFAULT_NOTE_HEIGHT, MIN_NOTE_HEIGHT),
           }));
         }
       }

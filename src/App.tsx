@@ -661,6 +661,18 @@ export default function App() {
         onAddNote={(color) => handleAddNote(color)}
         onFocusNote={handleFocusNote}
         onClearFocus={handleClearFocus}
+        onUndo={() => {
+          if (canUndo) {
+            undo();
+            showToast('Ångrade ändring (2-fingers gest) ↩️');
+          }
+        }}
+        onRedo={() => {
+          if (canRedo) {
+            redo();
+            showToast('Gjorde om ändring (3-fingers gest) ↪️');
+          }
+        }}
       />
 
       {/* Export Board Image / Backup Modal */}

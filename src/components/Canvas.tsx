@@ -22,6 +22,8 @@ interface CanvasProps {
   onAddNote: (color?: PostItColor) => void;
   onFocusNote?: (note: PostItNote) => void;
   onClearFocus?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 export const Canvas: React.FC<CanvasProps> = ({
@@ -43,6 +45,8 @@ export const Canvas: React.FC<CanvasProps> = ({
   onAddNote,
   onFocusNote,
   onClearFocus,
+  onUndo,
+  onRedo,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPanning, setIsPanning] = useState(false);
@@ -50,6 +54,8 @@ export const Canvas: React.FC<CanvasProps> = ({
 
   // Multi-touch tracking for iPad pinch-to-zoom & two-finger pan
   const activePointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const touchHistoryRef = useRef<Map<number, { startX: number; startY: number; startTime: number }>>(new Map());
+  const maxSimultaneousTouchesRef = useRef<number>(0);
   const pinchStartRef = useRef<{ distance: number; initialZoom: number; center: { x: number; y: number }; initialPan: { x: number; y: number } } | null>(null);
 
   // Last tap tracking for double-tap detection on iPad touch
@@ -75,14 +81,21 @@ export const Canvas: React.FC<CanvasProps> = ({
     return titleMatch || contentMatch;
   };
 
-  // Background pointer down for desk panning, pinch-to-zoom & double tap
+  // Background pointer down for desk panning, pinch-to-zoom, Apple Pencil & multi-finger gestures
   const handleBackgroundPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     // Only handle if clicking/touching the canvas background directly
     if (e.target !== containerRef.current && !(e.target as HTMLElement).classList.contains('desk-surface-plane')) {
       return;
     }
 
+    // Palm rejection on canvas background (filter out fleshy palm edges)
+    if (e.pointerType === 'touch' && ((e.width && e.width > 28) || (e.height && e.height > 28))) {
+      return;
+    }
+
     activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    touchHistoryRef.current.set(e.pointerId, { startX: e.clientX, startY: e.clientY, startTime: Date.now() });
+    maxSimultaneousTouchesRef.current = Math.max(maxSimultaneousTouchesRef.current, activePointersRef.current.size);
 
     // If two fingers are down, initialize pinch gesture
     if (activePointersRef.current.size === 2) {
@@ -117,13 +130,13 @@ export const Canvas: React.FC<CanvasProps> = ({
     const clickX = (e.clientX - rect.left - panOffset.x) / zoom;
     const clickY = (e.clientY - rect.top - panOffset.y) / zoom;
 
-    // Detect double tap on iPad Pro touch or double click on mouse
+    // Detect double tap on iPad Pro touch or Apple Pencil or double click on mouse
     const now = Date.now();
     const timeDiff = now - lastTapRef.current.time;
     const distDiff = Math.hypot(e.clientX - lastTapRef.current.x, e.clientY - lastTapRef.current.y);
 
     if (timeDiff < 320 && distDiff < 30) {
-      // Double tap detected! Create a note right at pointer location
+      // Double tap detected! Create a note right at pointer / pencil location
       onDoubleTapCreate(Math.round(clickX - 135), Math.round(clickY - 50));
       lastTapRef.current = { time: 0, x: 0, y: 0 };
       return;
@@ -194,6 +207,34 @@ export const Canvas: React.FC<CanvasProps> = ({
 
   const handleBackgroundPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     activePointersRef.current.delete(e.pointerId);
+
+    // Check for iPad Pro multi-finger tap gestures (Two-finger tap = Undo, Three-finger tap = Redo)
+    if (activePointersRef.current.size === 0) {
+      const touchCount = maxSimultaneousTouchesRef.current;
+      const allTouches: Array<{ startX: number; startY: number; startTime: number }> = Array.from(
+        touchHistoryRef.current.values()
+      );
+      const now = Date.now();
+
+      const isStationaryTap =
+        allTouches.length > 0 &&
+        allTouches.every((t) => {
+          const duration = now - t.startTime;
+          const dist = Math.hypot(e.clientX - t.startX, e.clientY - t.startY);
+          return duration < 320 && dist < 25;
+        });
+
+      if (isStationaryTap) {
+        if (touchCount === 2) {
+          onUndo?.();
+        } else if (touchCount === 3) {
+          onRedo?.();
+        }
+      }
+
+      touchHistoryRef.current.clear();
+      maxSimultaneousTouchesRef.current = 0;
+    }
 
     if (activePointersRef.current.size < 2) {
       pinchStartRef.current = null;

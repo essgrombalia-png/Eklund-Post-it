@@ -331,48 +331,151 @@ export const StylusCalibrationModal: React.FC<StylusCalibrationModalProps> = ({
             />
           </div>
 
-          {/* 4. Toggles: Palm Rejection & Smart Shapes */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-            <div
-              onClick={() => setCurrent((prev) => ({ ...prev, palmRejection: !prev.palmRejection }))}
-              className="flex items-center justify-between p-3 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/30 cursor-pointer hover:bg-slate-100/70 transition-colors"
-            >
-              <div className="flex items-center gap-2.5">
-                <Shield className="h-4 w-4 text-emerald-500" />
-                <div>
-                  <p className="text-xs font-semibold text-slate-800 dark:text-white">Handflatsavvisning</p>
-                  <p className="text-[10px] text-slate-400 dark:text-zinc-400">
-                    Avvisar touch vid Apple Pencil
-                  </p>
+          {/* 4. iPad Pro & Apple Pencil Specialinställningar */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+              iPad Pro & Apple Pencil Optimeringar
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {/* Palm Rejection */}
+              <div
+                onClick={() => setCurrent((prev) => ({ ...prev, palmRejection: !prev.palmRejection }))}
+                className="flex items-center justify-between p-3 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/30 cursor-pointer hover:bg-slate-100/70 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Shield className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-slate-800 dark:text-white">Handflatsavvisning</p>
+                    <p className="text-[10px] text-slate-400 dark:text-zinc-400">
+                      Avvisar handloven mot skärmen
+                    </p>
+                  </div>
                 </div>
+                <input
+                  type="checkbox"
+                  checked={current.palmRejection}
+                  onChange={() => {}}
+                  className="accent-emerald-500 h-4 w-4 rounded pointer-events-none"
+                />
               </div>
-              <input
-                type="checkbox"
-                checked={current.palmRejection}
-                onChange={() => {}}
-                className="accent-emerald-500 h-4 w-4 rounded pointer-events-none"
-              />
-            </div>
 
-            <div
-              onClick={() => setCurrent((prev) => ({ ...prev, snapShapes: !prev.snapShapes }))}
-              className="flex items-center justify-between p-3 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/30 cursor-pointer hover:bg-slate-100/70 transition-colors"
-            >
-              <div className="flex items-center gap-2.5">
-                <Sparkles className="h-4 w-4 text-amber-500" />
-                <div>
-                  <p className="text-xs font-semibold text-slate-800 dark:text-white">Smarta Raka Linjer</p>
-                  <p className="text-[10px] text-slate-400 dark:text-zinc-400">
-                    Håll stilla för att snäppa linje
-                  </p>
+              {/* Direct Pencil Inking */}
+              <div
+                onClick={() =>
+                  setCurrent((prev) => ({ ...prev, directPencilInking: !prev.directPencilInking }))
+                }
+                className="flex items-center justify-between p-3 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/30 cursor-pointer hover:bg-slate-100/70 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <PenTool className="h-4 w-4 text-amber-500 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-slate-800 dark:text-white">Direkt Pencil-ritning</p>
+                    <p className="text-[10px] text-slate-400 dark:text-zinc-400">
+                      Aktivera skiss direkt vid pennkontakt
+                    </p>
+                  </div>
                 </div>
+                <input
+                  type="checkbox"
+                  checked={current.directPencilInking}
+                  onChange={() => {}}
+                  className="accent-amber-500 h-4 w-4 rounded pointer-events-none"
+                />
               </div>
-              <input
-                type="checkbox"
-                checked={current.snapShapes}
-                onChange={() => {}}
-                className="accent-amber-500 h-4 w-4 rounded pointer-events-none"
-              />
+
+              {/* Two-finger Undo */}
+              <div
+                onClick={() =>
+                  setCurrent((prev) => ({ ...prev, twoFingerUndo: !prev.twoFingerUndo }))
+                }
+                className="flex items-center justify-between p-3 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/30 cursor-pointer hover:bg-slate-100/70 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <RotateCcw className="h-4 w-4 text-sky-500 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-slate-800 dark:text-white">Fingersnabbval (Ångra/Gör om)</p>
+                    <p className="text-[10px] text-slate-400 dark:text-zinc-400">
+                      2 fingrar = Ångra, 3 fingrar = Gör om
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={current.twoFingerUndo}
+                  onChange={() => {}}
+                  className="accent-sky-500 h-4 w-4 rounded pointer-events-none"
+                />
+              </div>
+
+              {/* Apple Pencil Hover Preview */}
+              <div
+                onClick={() =>
+                  setCurrent((prev) => ({ ...prev, pencilHoverPreview: !prev.pencilHoverPreview }))
+                }
+                className="flex items-center justify-between p-3 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/30 cursor-pointer hover:bg-slate-100/70 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Eye className="h-4 w-4 text-purple-500 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-slate-800 dark:text-white">Apple Pencil Hover</p>
+                    <p className="text-[10px] text-slate-400 dark:text-zinc-400">
+                      Visar spetsens form vid svävning
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={current.pencilHoverPreview}
+                  onChange={() => {}}
+                  className="accent-purple-500 h-4 w-4 rounded pointer-events-none"
+                />
+              </div>
+
+              {/* ProMotion 120Hz Coalesced Events */}
+              <div
+                onClick={() =>
+                  setCurrent((prev) => ({ ...prev, proMotion120Hz: !prev.proMotion120Hz }))
+                }
+                className="flex items-center justify-between p-3 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/30 cursor-pointer hover:bg-slate-100/70 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Activity className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-slate-800 dark:text-white">120Hz ProMotion</p>
+                    <p className="text-[10px] text-slate-400 dark:text-zinc-400">
+                      Sub-pixel precision utan fördröjning
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={current.proMotion120Hz}
+                  onChange={() => {}}
+                  className="accent-emerald-500 h-4 w-4 rounded pointer-events-none"
+                />
+              </div>
+
+              {/* Smart Shapes */}
+              <div
+                onClick={() => setCurrent((prev) => ({ ...prev, snapShapes: !prev.snapShapes }))}
+                className="flex items-center justify-between p-3 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/30 cursor-pointer hover:bg-slate-100/70 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Sparkles className="h-4 w-4 text-amber-500 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-slate-800 dark:text-white">Smarta Raka Linjer</p>
+                    <p className="text-[10px] text-slate-400 dark:text-zinc-400">
+                      Håll stilla för att snäppa linje
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={current.snapShapes}
+                  onChange={() => {}}
+                  className="accent-amber-500 h-4 w-4 rounded pointer-events-none"
+                />
+              </div>
             </div>
           </div>
 

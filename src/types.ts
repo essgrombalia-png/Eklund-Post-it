@@ -110,6 +110,10 @@ export interface StylusCalibrationSettings {
   nibFriction: number; // 0 to 1 (pen drag resistance)
   palmRejection: boolean;
   snapShapes: boolean;
+  directPencilInking: boolean; // Auto-activate ink when Apple Pencil touches note
+  twoFingerUndo: boolean; // Two-finger tap = Undo, three-finger tap = Redo
+  pencilHoverPreview: boolean; // Apple Pencil Hover cursor on iPad Pro
+  proMotion120Hz: boolean; // ProMotion 120Hz coalesced events
 }
 
 export const DEFAULT_STYLUS_CALIBRATION: StylusCalibrationSettings = {
@@ -120,6 +124,10 @@ export const DEFAULT_STYLUS_CALIBRATION: StylusCalibrationSettings = {
   nibFriction: 0.15,
   palmRejection: true,
   snapShapes: true,
+  directPencilInking: true,
+  twoFingerUndo: true,
+  pencilHoverPreview: true,
+  proMotion120Hz: true,
 };
 
 export type ImageFitMode = 'cover' | 'contain' | 'auto';
@@ -266,10 +274,10 @@ export const COLOR_CONFIGS: Record<PostItColor, ColorDefinition> = {
 
 export const DEFAULT_NOTE_WIDTH = 290;
 export const DEFAULT_NOTE_HEIGHT = 280;
-export const MIN_NOTE_WIDTH = 220;
-export const MIN_NOTE_HEIGHT = 200;
-export const MAX_NOTE_WIDTH = 560;
-export const MAX_NOTE_HEIGHT = 650;
+export const MIN_NOTE_WIDTH = 140;
+export const MIN_NOTE_HEIGHT = 120;
+export const MAX_NOTE_WIDTH = 1200;
+export const MAX_NOTE_HEIGHT = 1200;
 
 export const TRASH_RETENTION_DAYS = 30;
 export const TRASH_RETENTION_MS = TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000;
